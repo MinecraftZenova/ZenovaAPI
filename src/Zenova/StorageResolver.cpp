@@ -11,7 +11,7 @@
 #include "Zenova/Log.h"
 
 namespace Zenova {
-	std::tstring StorageResolver::minecraft_path;
+	UniversalString StorageResolver::minecraft_path;
 	std::unordered_map<std::wstring, std::wstring> StorageResolver::mirror_directory;
 
 	StorageResolver::StorageResolver() {
@@ -36,29 +36,29 @@ namespace Zenova {
 			appData.replace(appData.find(replaced), replaced.length(), L"Microsoft.MinecraftUWP");
 
 			minecraft_path = appData;
-			Info(minecraft_path);
+			Zenova_Info(minecraft_path);
 		}
 		else {
 			_com_error err(code);
-			Error(err.ErrorMessage());
+			Zenova_Error(err.ErrorMessage());
 		}
 	}
 
-	StorageResolver::StorageResolver(const std::tstring& directory, const std::tstring& mirror) : StorageResolver() {
+	StorageResolver::StorageResolver(const UniversalString& directory, const UniversalString& mirror) : StorageResolver() {
 		addMirrorDirectory(directory, mirror);
 	}
 
-	StorageResolver::StorageResolver(const std::vector<std::tstring>& directories, const std::vector<std::tstring>& mirrors) : StorageResolver() {
+	StorageResolver::StorageResolver(const std::vector<UniversalString>& directories, const std::vector<UniversalString>& mirrors) : StorageResolver() {
 		addMirrorDirectory(directories, mirrors);
 	}
 
-	bool StorageResolver::addMirrorDirectory(const std::tstring& directory, const std::tstring& mirror) {
+	bool StorageResolver::addMirrorDirectory(const UniversalString& directory, const UniversalString& mirror) {
 
 
 		return true;
 	}
 
-	bool StorageResolver::addMirrorDirectory(const std::vector<std::tstring>& directories, const std::vector<std::tstring>& mirrors) {
+	bool StorageResolver::addMirrorDirectory(const std::vector<UniversalString>& directories, const std::vector<UniversalString>& mirrors) {
 		
 		return true;
 	}

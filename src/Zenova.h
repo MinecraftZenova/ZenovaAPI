@@ -4,15 +4,10 @@
 #include "Zenova/Hook.h"
 #include "Zenova/Log.h"
 #include "Zenova/Mod.h"
+#include "Zenova/Platform/Platform.h"
 
-#ifdef _WINDOWS
-	#include "Zenova/OS/Windows.h"
-#elif Linux
-	#include "Zenova/OS/Linux.h"
-#endif
+#include <utility>
 
-//implement a string to wstring, switch to only use wstring
-	
 namespace Zenova {
 #ifdef ZENOVA_API
 	unsigned long __stdcall Start(void* dllHandle); //don't try to run this : )
@@ -20,5 +15,6 @@ namespace Zenova {
 
 	namespace Util {
 		std::wstring StrToWstr(const std::string& oldstr);
+		bool IsDirectory(const std::string& folder);
 	}
 }

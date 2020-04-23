@@ -16,11 +16,11 @@ namespace Zenova {
 
 	class EXPORT Message {
 	public:
-		Message(LogSeverity severity, std::tstring message, std::tstring name);
-		Message(std::tstring severity, std::tstring message, std::tstring name);
+		Message(LogSeverity severity, UniversalString message, UniversalString name);
+		Message(UniversalString severity, UniversalString message, UniversalString name);
 	};
-
-	#define Info(message) Message(LogSeverity::info, message, __FUNCTION__)
-	#define Warn(message) Message(LogSeverity::warning, message, __FUNCTION__)
-	#define Error(message) Message(LogSeverity::error, message, __FUNCTION__)
 }
+
+#define Zenova_Info(zenova_macro_message) Zenova::Message(Zenova::LogSeverity::info, zenova_macro_message, FSIG)
+#define Zenova_Warn(zenova_macro_message) Zenova::Message(Zenova::LogSeverity::warning, zenova_macro_message, FSIG)
+#define Zenova_Error(zenova_macro_message) Zenova::Message(Zenova::LogSeverity::error, zenova_macro_message, FSIG)

@@ -10,6 +10,12 @@
 #define EXPORT __declspec(dllimport) 
 #endif
 
+#ifdef _MSC_VER
+	#define FSIG __FUNCTION__
+#else //gcc
+	#define FSIG __func__
+#endif
+
 using exception = std::runtime_error;
 
 //unsigned int types
@@ -24,25 +30,24 @@ using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
 
-//move to a Util header?
 namespace Zenova {
+	//move to a Util header?
 	namespace Util {
+		std::string WstrToStr(const std::wstring& oldwstr);
 		std::wstring StrToWstr(const std::string& oldstr);
 	}
-}
 
-//this is convienant, idc about the risks
-//implementation in Log.cpp
-namespace std {
-	class tstring : public wstring {
+	//In the future add string operators?
+	class UniversalString {
 	public:
-		string strData;
+		std::wstring wstr;
 
-		using wstring::wstring;
-		tstring(const string&);
-		tstring(const char*);
-		tstring(const wstring&);
+		UniversalString() : wstr(L"") {}
+		UniversalString(const std::string& pstr) : wstr(Util::StrToWstr(pstr)) {}
+		UniversalString(const std::wstring& pwstr) : wstr(pwstr) {}
+		UniversalString(const char* pstr) : wstr(Util::StrToWstr(pstr)) {}
+		UniversalString(const wchar_t* pwstr) : wstr(pwstr) {}
 
-		const string& str();
+		std::string str() { return Util::WstrToStr(wstr); }
 	};
 }

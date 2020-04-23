@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-#project(ZenovaAPI)
+set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "" FORCE)
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -13,9 +13,9 @@ endif()
 if(MSVC)
     foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
         string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{APPDATA}/Zenova/")
-        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{APPDATA}/Zenova/")
-        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{APPDATA}/Zenova/")
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
     endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 endif()
 
@@ -24,12 +24,25 @@ add_compile_definitions(ZENOVA_API)
 include_directories("src")
 
 file(GLOB_RECURSE INCLUDE_LIST
-    "*.h"
+    "src/*.h"
 )
 
-file(GLOB_RECURSE SOURCE_LIST
-    "*.cpp"
+set(SOURCE_LIST 
+    "src/Zenova.cpp"
+    "src/Zenova/Common.cpp"
+    "src/Zenova/Hook.cpp"
+    "src/Zenova/Log.cpp"
+    "src/Zenova/Mod.cpp"
+    "src/Zenova/StorageResolver.cpp"
+    "src/Zenova/Platform/Platform.cpp"
 )
+
+if(WIN32)
+    list(APPEND SOURCE_LIST
+        "src/dllmain.cpp"
+        "src/Zenova/Platform/Windows.cpp"
+    )
+endif()
 
 add_library(ZenovaAPI SHARED
     ${INCLUDE_LIST}

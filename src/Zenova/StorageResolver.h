@@ -9,15 +9,15 @@
 namespace Zenova {
 	class StorageResolver {
 	public:
-		static std::tstring minecraft_path;
+		static UniversalString minecraft_path;
 		static std::unordered_map<std::wstring, std::wstring> mirror_directory;
 
 		StorageResolver();
-		StorageResolver(const std::tstring& directory, const std::tstring& mirror);
-		StorageResolver(const std::vector<std::tstring>& directories, const std::vector<std::tstring>& mirrors);
+		StorageResolver(const UniversalString& directory, const UniversalString& mirror);
+		StorageResolver(const std::vector<UniversalString>& directories, const std::vector<UniversalString>& mirrors);
 
 		//false on already exists, true on success
-		bool addMirrorDirectory(const std::tstring& directory, const std::tstring& mirror);
-		bool addMirrorDirectory(const std::vector<std::tstring>& directories, const std::vector<std::tstring>& mirrors);
+		bool addMirrorDirectory(const UniversalString& directory, const UniversalString& mirror);
+		bool addMirrorDirectory(const std::vector<UniversalString>& directories, const std::vector<UniversalString>& mirrors);
 	};
 }
