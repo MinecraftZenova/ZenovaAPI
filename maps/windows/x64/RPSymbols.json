@@ -1,0 +1,12 @@
+{
+    "functions": [
+        {
+            "name": "?fromString@UUID@mce@@SA?AV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+            "address": "0x0E555A0"
+        },
+        {
+            "name": "?_parseVersionToString@SemVersion@@AEAAXXZ",
+            "address": "0x0E2CCB0"
+        }
+    ]
+}

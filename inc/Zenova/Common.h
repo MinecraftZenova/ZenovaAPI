@@ -42,11 +42,11 @@ namespace Zenova {
 	public:
 		std::wstring wstr;
 
-		UniversalString() : wstr(L"") {}
-		UniversalString(const std::string& pstr) : wstr(Util::StrToWstr(pstr)) {}
-		UniversalString(const std::wstring& pwstr) : wstr(pwstr) {}
-		UniversalString(const char* pstr) : wstr(Util::StrToWstr(pstr)) {}
-		UniversalString(const wchar_t* pwstr) : wstr(pwstr) {}
+		EXPORT UniversalString();
+		EXPORT UniversalString(const std::string& pstr);
+		EXPORT UniversalString(const std::wstring& pwstr);
+		EXPORT UniversalString(const char* pstr);
+		EXPORT UniversalString(const wchar_t* pwstr);
 
 		std::string str() { return Util::WstrToStr(wstr); }
 	};

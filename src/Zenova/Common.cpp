@@ -19,4 +19,10 @@ namespace Zenova {
 			return std::filesystem::is_directory(std::filesystem::status(folder));
 		}
 	}
+	
+	UniversalString::UniversalString() : wstr(L"") {}
+	UniversalString::UniversalString(const std::string& pstr) : wstr(Util::StrToWstr(pstr)) {}
+	UniversalString::UniversalString(const std::wstring& pwstr) : wstr(pwstr) {}
+	UniversalString::UniversalString(const char* pstr) : wstr(Util::StrToWstr(pstr)) {}
+	UniversalString::UniversalString(const wchar_t* pwstr) : wstr(pwstr) {}
 }

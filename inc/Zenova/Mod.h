@@ -6,6 +6,9 @@
 
 #define MOD_FUNCTION extern "C" __declspec(dllexport)
 
+//:)
+#pragma warning(disable:4251)
+
 namespace Zenova {
 	class EXPORT Mod {
 	protected:

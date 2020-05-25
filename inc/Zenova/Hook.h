@@ -10,7 +10,7 @@
 
 #include "Common.h"
 #include "Log.h"
-#include "Platform/Platform.h"
+#include "Platform.h"
 
 namespace Zenova {
 	//Sorry ogniK :P

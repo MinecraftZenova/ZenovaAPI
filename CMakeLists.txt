@@ -21,20 +21,32 @@ endif()
 
 add_compile_definitions(ZENOVA_API)
 
+include_directories("inc")
 include_directories("src")
+
+file(GLOB_RECURSE API_INCLUDE_LIST
+    "inc/*.h"
+)
 
 file(GLOB_RECURSE INCLUDE_LIST
     "src/*.h"
 )
 
 set(SOURCE_LIST 
-    "src/Zenova.cpp"
+    "src/initasm.asm"
     "src/Zenova/Common.cpp"
+    "src/Zenova/Helper.cpp"
     "src/Zenova/Hook.cpp"
+    "src/Zenova/JsonHelper.cpp"
     "src/Zenova/Log.cpp"
+    "src/Zenova/MessageRedirection.cpp"
     "src/Zenova/Mod.cpp"
+    "src/Zenova/PackManager.cpp"
     "src/Zenova/StorageResolver.cpp"
     "src/Zenova/Platform/Platform.cpp"
+    "src/Zenova/Profile/Manager.cpp"
+    "src/Zenova/Profile/ModInfo.cpp"
+    "src/Zenova/Profile/ProfileInfo.cpp"
 )
 
 if(WIN32)
@@ -45,6 +57,7 @@ if(WIN32)
 endif()
 
 add_library(ZenovaAPI SHARED
+    ${API_INCLUDE_LIST}
     ${INCLUDE_LIST}
     ${SOURCE_LIST}
 )
@@ -54,5 +67,6 @@ target_link_libraries(ZenovaAPI
     ${MinHook}
 )
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files\\" FILES ${API_INCLUDE_LIST})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files\\" FILES ${INCLUDE_LIST})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files\\" FILES ${SOURCE_LIST})
