@@ -3,15 +3,14 @@
 #include "Zenova/Log.h"
 
 namespace Zenova {
-    json::Document JsonHelper::OpenFile(const std::string& fileLocation) {
+    json::Document JsonHelper::OpenFile(const std::string& fileLocation, bool missingFile) {
         json::Document d;
         std::ifstream ifs(fileLocation);
         if(ifs.is_open()) {
             d.ParseStream(json::IStreamWrapper(ifs));
         }
-        else {
+        else if(missingFile) {
             Zenova_Warn("\"" + fileLocation + "\" not found");
-            d.Parse("{}");
         }
 
         return d;
@@ -30,11 +29,13 @@ namespace Zenova {
 
     std::string JsonHelper::FindString(const json::Value& rootObject, const std::string& memberStr) {
         auto& objStr = JsonHelper::FindMember(rootObject, memberStr);
-        if(objStr.IsString()) {
-            return objStr.GetString();
-        }
-        else {
-            Zenova_Warn(memberStr + " isn't a String");
+        if(!objStr.IsNull()) {
+            if(objStr.IsString()) {
+                return objStr.GetString();
+            }
+            else {
+                Zenova_Warn(memberStr + " isn't a String");
+            }
         }
 
         return "";

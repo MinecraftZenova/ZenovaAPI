@@ -9,30 +9,24 @@ namespace Zenova {
     bool PackManager::AddMod(const std::string& path) {
 		bool result = false;
 		// resource pack
-		std::string fileLocation = path + "assets\\manifest.json";
-		std::ifstream resourceStream(fileLocation);
-		if(resourceStream.is_open()) {
-			json::Document modDocument;
-			modDocument.ParseStream(json::IStreamWrapper(resourceStream));
-			auto& headerObj = JsonHelper::FindMember(modDocument, "header");
-			if(headerObj.IsObject()) {
+		json::Document modDocument = JsonHelper::OpenFile(path + "assets\\manifest.json");
+		if(!modDocument.IsNull()) {
+			auto& rpHeaderObj = JsonHelper::FindMember(modDocument, "header");
+			if(rpHeaderObj.IsObject()) {
 				std::string packLocation = path.substr(path.find("mods")) + "assets";
-				resource_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(headerObj, "uuid"));
+				resource_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(rpHeaderObj, "uuid"));
 				Zenova_Info(packLocation + ": " + resource_packs.back().second);
 				result = true;
 			}
 		}
 
 		// behavior pack
-		fileLocation = path + "data\\manifest.json";
-		std::ifstream behaviorStream(fileLocation);
-		if(behaviorStream.is_open()) {
-			json::Document modDocument;
-			modDocument.ParseStream(json::IStreamWrapper(behaviorStream));
-			auto& headerObj = JsonHelper::FindMember(modDocument, "header");
-			if(headerObj.IsObject()) {
+		modDocument = JsonHelper::OpenFile(path + "data\\manifest.json");
+		if(!modDocument.IsNull()) {
+			auto& bpHeaderObj = JsonHelper::FindMember(modDocument, "header");
+			if(bpHeaderObj.IsObject()) {
 				std::string packLocation = path.substr(path.find("mods")) + "data";
-				behavior_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(headerObj, "uuid"));
+				behavior_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(bpHeaderObj, "uuid"));
 				Zenova_Info(packLocation + ": " + behavior_packs.back().second);
 				result = true;
 			}

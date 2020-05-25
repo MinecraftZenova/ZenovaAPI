@@ -14,7 +14,7 @@ namespace json = rapidjson;
 namespace Zenova {
 	class JsonHelper {
 	public:
-		static json::Document OpenFile(const std::string& fileLocation);
+		static json::Document OpenFile(const std::string& fileLocation, bool missingFile = false);
 		static const json::Value& FindMember(const json::Value& obj, const std::string& memberStr);
 		static std::string FindString(const json::Value& rootObject, const std::string& memberStr);
 	};

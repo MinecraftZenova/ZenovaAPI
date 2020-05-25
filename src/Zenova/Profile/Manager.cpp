@@ -8,12 +8,12 @@
 namespace Zenova {
     const json::Value& GetLaunchedProfile() {
         json::Document prefDocument = JsonHelper::OpenFile(gFolder + "\\preferences.json");
-        if(prefDocument.IsObject()) {
-            std::string profileHash = JsonHelper::FindString(prefDocument.GetObject(), "selectedProfile");
+        if(!prefDocument.IsNull()) {
+            std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
             if(!profileHash.empty()) {
                 json::Document profilesDocument = JsonHelper::OpenFile(gFolder + "\\profiles.json");
-                if(profilesDocument.IsObject()) {
-                    return JsonHelper::FindMember(profilesDocument.GetObject(), profileHash);
+                if(!profilesDocument.IsNull()) {
+                    return JsonHelper::FindMember(profilesDocument, profileHash);
                 }
             }
         }
@@ -32,7 +32,7 @@ namespace Zenova {
         profiles.clear();
 
         json::Document profilesDocument = JsonHelper::OpenFile(gFolder + "/profiles.json");
-        if(profilesDocument.IsArray()) {
+        if(!profilesDocument.IsNull() && profilesDocument.IsArray()) {
             for(auto& profile : profilesDocument.GetArray()) {
                 if(launched.versionId == JsonHelper::FindString(profile, "versionId")) {
                     profiles.push_back(profile);

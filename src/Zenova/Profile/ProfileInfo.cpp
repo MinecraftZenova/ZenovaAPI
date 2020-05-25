@@ -4,7 +4,7 @@
 
 namespace Zenova {
     ProfileInfo::ProfileInfo(const json::Value& profile) {
-        if(profile.IsObject()) {
+        if(!profile.IsNull() && profile.IsObject()) {
             name = JsonHelper::FindString(profile, "name");
             created = JsonHelper::FindString(profile, "created");
             lastUsed = JsonHelper::FindString(profile, "lastUsed");
