@@ -1,5 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include "Zenova.h"
+#include "Helper.h"
 
 #include <iostream> //std::cout (Zenova::MessageRedirection)
 #include <algorithm> //std::find_if
@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 
+#include "Zenova.h"
 #include "Zenova/Globals.h"
 #include "Zenova/StorageResolver.h"
 #include "Zenova/JsonHelper.h"
@@ -22,7 +23,6 @@
 namespace Zenova {
 	std::string gFolder = "";
 
-#ifdef ZENOVA_API
 	static void(*_getVanillaPacks)(VanillaInPackagePacks*, std::vector<IInPackagePacks::MetaData>&, PackType);
 	void getVanillaPacks(VanillaInPackagePacks* self, std::vector<IInPackagePacks::MetaData>& packs, PackType packType) {
 		_getVanillaPacks(self, packs, packType);
@@ -48,16 +48,26 @@ namespace Zenova {
 		Zenova::Hook::Call<void, Zenova::CallConvention::CDecl>(Zenova::Hook::SlideAddress(0x1ABF450), &self, packType);
 	}
 
-	static void(*_VanillaGameModuleClient$initializeResourceStack)(VanillaGameModuleClient*, ResourcePackRepository&, ResourcePackStack&);
-	void VanillaGameModuleClient$initializeResourceStack(VanillaGameModuleClient* self, ResourcePackRepository& repo, ResourcePackStack& tempStack) {
-		//Zenova::Platform::DebugPause();
-		_VanillaGameModuleClient$initializeResourceStack(self, repo, tempStack);
-
+	static void(*_VanillaGameModuleClient$initializeResourceStack)(VanillaGameModuleClient*, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
+	void VanillaGameModuleClient$initializeResourceStack(VanillaGameModuleClient* self, ResourcePackRepository& repo, ResourcePackStack& tempStack, const BaseGameVersion& baseGameVersion) {
 		for(auto& pack : Zenova::PackManager::instance.resource_packs) {
 			LambdaPack1 lp { repo, tempStack };
 			addPackFromPackId(lp,
 				{ mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Resources });
+
+			_VanillaGameModuleClient$initializeResourceStack(self, repo, tempStack, baseGameVersion);
 		}
+	}
+
+	static void(*_VanillaGameModuleServer$initializeBehaviorStack)(VanillaGameModuleServer*, const GameRules&, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
+	void VanillaGameModuleServer$initializeBehaviorStack(VanillaGameModuleServer* self, const GameRules& gameRules, ResourcePackRepository& repo, ResourcePackStack& stack, const BaseGameVersion& baseGameVersion) {
+		for(auto& pack : PackManager::instance.behavior_packs) {
+			LambdaPack1 lp { repo, stack };
+			addPackFromPackId(lp,
+				{ mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Resources });
+		}
+
+		_VanillaGameModuleServer$initializeBehaviorStack(self, gameRules, repo, stack, baseGameVersion);
 	}
 
 	std::string GetDataFolder() {
@@ -109,5 +119,4 @@ namespace Zenova {
 		Platform::Destroy();
 		return 0;
 	}
-#endif // ZENOVA_API
 }

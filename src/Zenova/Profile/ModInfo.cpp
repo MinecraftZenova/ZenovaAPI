@@ -21,14 +21,12 @@ namespace Zenova {
             modDocument.ParseStream(json::IStreamWrapper(modInfoStream));
 
             if(modDocument.IsObject()) {
-                auto modinfo = modDocument.GetObject();
-                
-                mNameId = JsonHelper::FindString(modinfo, "nameId");
-                mName = JsonHelper::FindString(modinfo, "name");
-                mDescription = JsonHelper::FindString(modinfo, "description");
-                mVersion = JsonHelper::FindString(modinfo, "version");
-                mMinVersion = JsonHelper::FindString(modinfo, "minVersion");
-                mMaxVersion = JsonHelper::FindString(modinfo, "maxVersion");
+                mNameId = JsonHelper::FindString(modDocument, "nameId");
+                mName = JsonHelper::FindString(modDocument, "name");
+                mDescription = JsonHelper::FindString(modDocument, "description");
+                mVersion = JsonHelper::FindString(modDocument, "version");
+                mMinVersion = JsonHelper::FindString(modDocument, "minVersion");
+                mMaxVersion = JsonHelper::FindString(modDocument, "maxVersion");
 
                 mHandle = Platform::LoadModule(folder + mNameId);
                 if(mHandle) {
@@ -37,7 +35,7 @@ namespace Zenova {
 
                     if(createMod) {
                         mMod = createMod();
-                        PackManager::instance.AddMod(folder + "assets");
+                        PackManager::instance.AddMod(folder);
                     }
                     else {
                         Zenova_Warn("Failed to find CreateMod in " + mNameId);

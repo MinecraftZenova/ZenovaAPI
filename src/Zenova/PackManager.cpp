@@ -7,18 +7,36 @@ namespace Zenova {
 	PackManager& PackManager::instance = PackManager();
     
     bool PackManager::AddMod(const std::string& path) {
-        std::string fileLocation = path + "\\manifest.json";
-        std::ifstream profilesStream(fileLocation);
-        if(profilesStream.is_open()) {
-            json::Document modDocument;
-            modDocument.ParseStream(json::IStreamWrapper(profilesStream));
-            auto& headerObj = JsonHelper::FindMember(modDocument, "header");
-            if(headerObj.IsObject()) {
-                resource_packs.emplace_back("..\\..\\..\\" + path.substr(path.find("mods")), JsonHelper::FindString(headerObj, "uuid"));
-                Zenova_Info(resource_packs.back().first + " (" + resource_packs.back().second + ")");
-                return true;
-            }
-        }
+		bool result = false;
+		// resource pack
+		std::string fileLocation = path + "assets\\manifest.json";
+		std::ifstream resourceStream(fileLocation);
+		if(resourceStream.is_open()) {
+			json::Document modDocument;
+			modDocument.ParseStream(json::IStreamWrapper(resourceStream));
+			auto& headerObj = JsonHelper::FindMember(modDocument, "header");
+			if(headerObj.IsObject()) {
+				std::string packLocation = path.substr(path.find("mods")) + "assets";
+				resource_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(headerObj, "uuid"));
+				Zenova_Info(packLocation + ": " + resource_packs.back().second);
+				result = true;
+			}
+		}
+
+		// behavior pack
+		fileLocation = path + "data\\manifest.json";
+		std::ifstream behaviorStream(fileLocation);
+		if(behaviorStream.is_open()) {
+			json::Document modDocument;
+			modDocument.ParseStream(json::IStreamWrapper(behaviorStream));
+			auto& headerObj = JsonHelper::FindMember(modDocument, "header");
+			if(headerObj.IsObject()) {
+				std::string packLocation = path.substr(path.find("mods")) + "data";
+				behavior_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(headerObj, "uuid"));
+				Zenova_Info(packLocation + ": " + behavior_packs.back().second);
+				result = true;
+			}
+		}
 
         return false;
     }

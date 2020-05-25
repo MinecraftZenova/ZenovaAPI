@@ -35,6 +35,7 @@ namespace Zenova {
 	namespace Util {
 		std::string WstrToStr(const std::wstring& oldwstr);
 		std::wstring StrToWstr(const std::string& oldstr);
+		bool IsDirectory(const std::string& folder);
 	}
 
 	//In the future add string operators?

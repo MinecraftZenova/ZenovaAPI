@@ -103,6 +103,7 @@ struct PackIdVersion {
 	}
 };
 
+class BaseGameVersion {};
 class ResourcePackRepository {};
 class ResourcePackStack {};
 class VanillaInPackagePacks {};
