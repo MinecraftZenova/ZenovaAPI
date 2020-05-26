@@ -2,12 +2,10 @@
 
 #include <fstream>
 
+#include "Zenova.h"
 #include "Zenova/Globals.h"
 #include "Zenova/JsonHelper.h"
-#include "Zenova/Log.h"
-#include "Zenova/Mod.h"
 #include "Zenova/PackManager.h"
-#include "Zenova/Platform.h"
 
 namespace Zenova {
     ModInfo::ModInfo(const std::string& modName) {
@@ -15,7 +13,6 @@ namespace Zenova {
 
         std::string folder = gFolder + "\\mods\\" + modName + "\\";
         json::Document modDocument = JsonHelper::OpenFile(folder + "modinfo.json");
-
         if(!modDocument.IsNull()) {
             mNameId = JsonHelper::FindString(modDocument, "nameId");
             mName = JsonHelper::FindString(modDocument, "name");
@@ -26,7 +23,7 @@ namespace Zenova {
 
             mHandle = Platform::LoadModule(folder + mNameId);
             if(mHandle) {
-                using FuncPtr = Mod * (*)();
+                using FuncPtr = Mod* (*)();
                 FuncPtr createMod = reinterpret_cast<FuncPtr>(Platform::GetModuleFunction(mHandle, "CreateMod"));
 
                 if(createMod) {
