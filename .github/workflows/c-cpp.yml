@@ -23,7 +23,7 @@ jobs:
     - name: cmake
       run: |
         cmake -S . -B build
-        cmake --build build
+        cmake --build build --config Release
     - name: tree
       run: tree ./build
     #- uses: actions/upload-artifact@v2
