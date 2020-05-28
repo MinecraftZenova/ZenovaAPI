@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <Utils/Utils.h>
+
 #ifdef ZENOVA_API
 #define EXPORT __declspec(dllexport)
 #else
@@ -31,13 +33,6 @@ using i32 = int32_t;
 using i64 = int64_t;
 
 namespace Zenova {
-	//move to a Util header?
-	namespace Util {
-		std::string WstrToStr(const std::wstring& oldwstr);
-		std::wstring StrToWstr(const std::string& oldstr);
-		bool IsDirectory(const std::string& folder);
-	}
-
 	//In the future add string operators?
 	class UniversalString {
 	public:

@@ -1,5 +1,22 @@
 cmake_minimum_required(VERSION 3.10)
 
+project(ZenovaAPI CXX ASM_NASM)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+if(NOT DEFINED CMAKE_ASM_NASM_COMPILER)
+    if(DEFINED ENV{ASM_NASM})
+        set(CMAKE_ASM_NASM_COMPILER $ENV{ASM_NASM})
+    elseif(DEFINED ENV{NASMPATH}) # https://github.com/ShiftMediaProject/VSNASM
+        set(CMAKE_ASM_NASM_COMPILER $ENV{ASM_NASM})
+    elseif(EXISTS "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\nasm.exe")
+        set(CMAKE_ASM_NASM_COMPILER "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\nasm.exe")
+    endif()
+endif()
+
+enable_language(ASM_NASM)
+
 set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "" FORCE)
 
 if(WIN32)

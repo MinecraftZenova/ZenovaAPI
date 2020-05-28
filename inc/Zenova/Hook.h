@@ -10,6 +10,7 @@
 
 #include "Common.h"
 #include "Log.h"
+#include "Zenova/Globals.h"
 #include "Platform.h"
 
 namespace Zenova {
@@ -47,7 +48,6 @@ namespace Zenova {
 	};
 
 	namespace Hook {
-		extern uintptr_t BaseAddress;
 		extern std::unordered_map<std::string, uintptr_t> functions;
 		extern std::unordered_map<std::string, uintptr_t> vtables;
 		extern std::unordered_map<std::string, uintptr_t> variables;

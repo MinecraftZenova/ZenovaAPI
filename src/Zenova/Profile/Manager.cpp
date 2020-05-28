@@ -7,19 +7,18 @@
 
 namespace Zenova {
     ProfileInfo GetLaunchedProfile() {
-        ProfileInfo retProfile;
         json::Document prefDocument = JsonHelper::OpenFile(gFolder + "\\preferences.json");
         if(!prefDocument.IsNull()) {
             std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
             if(!profileHash.empty()) {
                 json::Document profilesDocument = JsonHelper::OpenFile(gFolder + "\\profiles.json");
                 if(!profilesDocument.IsNull()) {
-                    retProfile = JsonHelper::FindMember(profilesDocument, profileHash);
+                    return JsonHelper::FindMember(profilesDocument, profileHash);
                 }
             }
         }
 
-        return retProfile;
+        return ProfileInfo();
     } 
 
     Manager::Manager() : launched(GetLaunchedProfile()) {

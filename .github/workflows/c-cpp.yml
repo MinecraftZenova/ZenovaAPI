@@ -1,0 +1,24 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: ./configure
+    - name: Checkout Common repo
+      uses: actions/checkout@v2
+      with:
+        repository: MinecraftZenova/Common
+        path: Common
+    - name: cmake
+      run: cmake Common | cmake .

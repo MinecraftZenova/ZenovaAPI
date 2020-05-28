@@ -4,4 +4,5 @@
 
 namespace Zenova {
 	extern std::string gFolder;
+	extern uintptr_t BaseAddress;
 }

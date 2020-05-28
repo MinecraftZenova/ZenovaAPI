@@ -3,8 +3,9 @@
 #include <list>
 
 namespace Zenova {
+	uintptr_t BaseAddress = 0;
+
 	namespace Hook {
-		uintptr_t BaseAddress = 0;
 		std::unordered_map<std::string, uintptr_t> functions;
 		std::unordered_map<std::string, uintptr_t> vtables;
 		std::unordered_map<std::string, uintptr_t> variables;
