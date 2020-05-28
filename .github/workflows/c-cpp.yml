@@ -19,11 +19,11 @@ jobs:
         repository: MinecraftZenova/Common
         path: Common
     - name: Setup build directory
-      run: |
-        mkdir build
+      run: mkdir build
     - name: cmake
-      working-directory: ./build
-      run: cmake --build ../
+      run: |
+        cmake -S . -B build
+        cmake --build build
     - name: tree
       run: tree ./build
     #- uses: actions/upload-artifact@v2
