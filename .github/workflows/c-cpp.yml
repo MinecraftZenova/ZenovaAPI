@@ -21,8 +21,8 @@ jobs:
     - name: Setup build directory
       run: |
         mkdir build
-        cd build
     - name: cmake
+      working-directory: ./build
       run: |
         cmake ../Common
         cmake ../
