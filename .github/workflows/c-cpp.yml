@@ -24,9 +24,8 @@ jobs:
       run: |
         cmake -S . -B build
         cmake --build build --config Release
-    - name: tree
-      run: tree ./build
-    #- uses: actions/upload-artifact@v2
-    #  with:
-    #    name: ZenovaAPI
-    #    path: ./build
+    - name: Upload x64
+      uses: actions/upload-artifact@v2
+      with:
+        name: ZenovaAPI.dll
+        path: build/ZenovaAPI.dll
