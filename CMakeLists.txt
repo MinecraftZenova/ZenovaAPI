@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_ASM_NASM_OBJECT_FORMAT win64)
+
 project(ZenovaAPI CXX ASM_NASM)
 
 set(CMAKE_CXX_STANDARD 17)
