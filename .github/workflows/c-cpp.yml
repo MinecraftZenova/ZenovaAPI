@@ -23,6 +23,4 @@ jobs:
         mkdir build
     - name: cmake
       working-directory: ./build
-      run: |
-        cmake ../Common
-        cmake ../
+      run: cmake ../
