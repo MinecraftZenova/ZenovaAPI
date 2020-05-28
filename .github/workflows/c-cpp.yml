@@ -23,4 +23,10 @@ jobs:
         mkdir build
     - name: cmake
       working-directory: ./build
-      run: cmake ../
+      run: cmake --build ../
+    - name: tree
+      run: tree ./build
+    #- uses: actions/upload-artifact@v2
+    #  with:
+    #    name: ZenovaAPI
+    #    path: ./build
