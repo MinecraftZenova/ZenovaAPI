@@ -28,9 +28,3 @@ jobs:
       with:
         name: ZenovaAPI.dll
         path: build/ZenovaAPI.dll
-    - name: Create tagged release
-      uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: false
-        files: ZenovaAPI.dll
