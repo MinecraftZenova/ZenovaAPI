@@ -9,11 +9,14 @@ if(NOT DEFINED CMAKE_ASM_NASM_COMPILER)
         set(CMAKE_ASM_NASM_COMPILER $ENV{ASM_NASM})
     elseif(DEFINED ENV{NASMPATH}) # https://github.com/ShiftMediaProject/VSNASM
         set(CMAKE_ASM_NASM_COMPILER $ENV{NASMPATH})
-    elseif(EXISTS "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
-        set(CMAKE_ASM_NASM_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
+    elseif(EXISTS "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/nasm.exe")
+        set(CMAKE_ASM_NASM_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/nasm.exe")
+    # add more cases in the future (like the other visual studios)
     endif()
 
-    string(REPLACE "\\" "/" CMAKE_ASM_NASM_COMPILER ${CMAKE_ASM_NASM_COMPILER})
+    if(DEFINED CMAKE_ASM_NASM_COMPILER)
+        string(REPLACE "\\" "/" CMAKE_ASM_NASM_COMPILER ${CMAKE_ASM_NASM_COMPILER})
+    endif()
 endif()
 
 project(ZenovaAPI CXX ASM_NASM)
