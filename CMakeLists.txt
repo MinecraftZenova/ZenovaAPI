@@ -9,8 +9,8 @@ if(NOT DEFINED CMAKE_ASM_NASM_COMPILER)
         set(CMAKE_ASM_NASM_COMPILER $ENV{ASM_NASM})
     elseif(DEFINED ENV{NASMPATH}) # https://github.com/ShiftMediaProject/VSNASM
         set(CMAKE_ASM_NASM_COMPILER $ENV{NASMPATH})
-    elseif(EXISTS "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\nasm.exe")
-        set(CMAKE_ASM_NASM_COMPILER "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\nasm.exe")
+    elseif(EXISTS "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
+        set(CMAKE_ASM_NASM_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
     endif()
 endif()
 
@@ -93,6 +93,6 @@ target_link_libraries(ZenovaAPI
     ${MinHook}
 )
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files\\" FILES ${API_INCLUDE_LIST})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files\\" FILES ${INCLUDE_LIST})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files\\" FILES ${SOURCE_LIST})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Header Files//" FILES ${INCLUDE_LIST})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files//" FILES ${SOURCE_LIST})
