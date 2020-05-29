@@ -12,9 +12,9 @@ if(NOT DEFINED CMAKE_ASM_NASM_COMPILER)
     elseif(EXISTS "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
         set(CMAKE_ASM_NASM_COMPILER "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/nasm.exe")
     endif()
-endif()
 
-string(REPLACE "\\" "/" CMAKE_ASM_NASM_COMPILER ${CMAKE_ASM_NASM_COMPILER})
+    string(REPLACE "\\" "/" CMAKE_ASM_NASM_COMPILER ${CMAKE_ASM_NASM_COMPILER})
+endif()
 
 project(ZenovaAPI CXX ASM_NASM)
 
