@@ -2,6 +2,8 @@ name: C/C++ CI
 
 on:
   push:
+    tags:
+      - "*"
   pull_request:
     branches: [ master ]
 
@@ -28,3 +30,11 @@ jobs:
       with:
         name: ZenovaAPI.dll
         path: build/ZenovaAPI.dll
+    - name: Create tagged release
+      if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: ZenovaAPI.dll
