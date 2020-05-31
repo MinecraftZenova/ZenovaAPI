@@ -10,7 +10,7 @@ namespace Zenova {
 		std::string name, created, lastUsed, versionId;
 		std::vector<std::string> modNames;
 
-		ProfileInfo() {}
+		ProfileInfo() = default;
 		ProfileInfo(const json::Value& profile);
 	};
 }

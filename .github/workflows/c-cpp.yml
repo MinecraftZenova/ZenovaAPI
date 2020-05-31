@@ -2,8 +2,6 @@ name: C/C++ CI
 
 on:
   push:
-    tags:
-      - "*"
   pull_request:
     branches: [ master ]
 
@@ -12,10 +10,12 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: ilammy/setup-nasm@v1
-    - uses: actions/checkout@v2
+    - name: Setup NASM
+      uses: ilammy/setup-nasm@v1
+    - name: Git Checkout
+      uses: actions/checkout@v2
 
-    - name: Restore CXX Cache
+    - name: Restore CMake Cache
       uses: actions/cache@v2
       with:
         path: build/
@@ -23,30 +23,41 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cxx-
 
-    - name: Checkout Common repo
+    - name: Checkout 'Common' Repository
       uses: actions/checkout@v2
       with:
         repository: MinecraftZenova/Common
         path: Common
 
-    - name: Setup build directory
-      run: mkdir -p build
-
-    - name: cmake
+    - name: Setup Build Directory
+      run: mkdir build -ea 0
+      
+    - name: Set Git Tag
+      if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+      run: |
+        if("${{ github.ref }}" -match "refs\/tags\/([0-9]+\.[0-9]+\.[0-9]+)")
+        { echo ('::set-env name=GIT_TAG::'+$matches.1) }
+    
+    - name: Update Version Resource
+      if: env.GIT_TAG != null
+      run: |
+        (((Get-Content -path src/ZenovaAPI.rc -Raw) -replace "0,0,0", ("$env:GIT_TAG" -replace "\.", ",")) -replace "0\.0\.0", "$env:GIT_TAG") | Set-Content -Path src/ZenovaAPI.rc
+        
+    - name: Run CMake
       run: |
         cmake -S . -B build
         cmake --build build --config Release
 
-    - name: Upload x64
+    - name: Upload x64 Build
       uses: actions/upload-artifact@v2
       with:
         name: ZenovaAPI.dll
         path: build/ZenovaAPI.dll
 
-    - name: Create tagged release
-      if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    - name: Create Tagged Release
+      if: env.GIT_TAG != null
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
-        files: ZenovaAPI.dll
+        files: build/ZenovaAPI.dll
