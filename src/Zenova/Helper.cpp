@@ -20,7 +20,7 @@
 #include "ResourceHeaders.h"
 
 namespace Zenova {
-	std::string gFolder = "";
+	std::string Folder = "";
 
 	static void(*_getVanillaPacks)(VanillaInPackagePacks*, std::vector<IInPackagePacks::MetaData>&, PackType);
 	void getVanillaPacks(VanillaInPackagePacks* self, std::vector<IInPackagePacks::MetaData>& packs, PackType packType) {
@@ -72,11 +72,11 @@ namespace Zenova {
 	std::string GetDataFolder() {
 		std::vector<std::string> folder = {
 			std::getenv("ZENOVA_DATA"),
-			::Util::GetAppDirectoryA() + "\\Data",
+			::Util::GetAppDirectoryA() + "\\data",
 		};
 
 		for(auto& str : folder) {
-			if(!str.empty() && Util::IsDirectory(str + "/versions")) {
+			if(!str.empty() && Util::IsDirectory(str + "\\versions")) {
 				return str;
 			}
 		}
@@ -85,28 +85,22 @@ namespace Zenova {
 	}
 
 	u32 __stdcall Start(void* dllHandle) {
-		gFolder = GetDataFolder();
-		bool canRun = (Platform::Init(dllHandle) && !gFolder.empty());
+		Folder = GetDataFolder();
+		bool canRun = (Platform::Init(dllHandle) && !Folder.empty());
 		if(canRun) {
 			MessageRedirection console;
 
-			Zenova::Platform::DebugPause();
 			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC2FC0)), getVanillaPacks, (void**)&_getVanillaPacks);
 			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1ABF550)), VanillaGameModuleClient$initializeResourceStack, (void**)&_VanillaGameModuleClient$initializeResourceStack);
 
 			Zenova_Info("Zenova Started");
-			Zenova_Info("ZenovaData Location: " + gFolder);
+			Zenova_Info("ZenovaData Location: " + Folder);
 			Zenova_Info("Minecraft's BaseAddress: " + ::Util::HexString(BaseAddress));
 
-			StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");
+			//StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");
 			Manager manager;
 
 			while(canRun) {
-				//Works in the console window :P
-				//if(GetAsyncKeyState(VK_ESCAPE)) { 
-				//	canRun = false;
-				//}
-
 				manager.Update();
 			}
 

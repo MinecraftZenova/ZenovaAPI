@@ -10,7 +10,6 @@
 
 #include "Common.h"
 #include "Log.h"
-#include "Zenova/Globals.h"
 #include "Platform.h"
 
 namespace Zenova {

@@ -12,6 +12,7 @@ namespace Zenova {
 		std::string mMinVersion, mMaxVersion, mVersion = "";
 
 		ModInfo(const std::string& name);
+		ModInfo(ModInfo&&) noexcept;
 		~ModInfo();
 	};
 }
