@@ -3,6 +3,6 @@
 #include <string>
 
 namespace Zenova {
-	extern std::string gFolder;
+	extern std::string Folder;
 	extern uintptr_t BaseAddress;
 }

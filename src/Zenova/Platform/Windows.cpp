@@ -190,9 +190,9 @@ namespace Zenova {
 			}
 
 			CleanupVariables = vars;
-			CreateHook("KernelBase.dll", "CreateFileW", (void*)&hfnCreateFileW, (void**)&pfnCreateFileW);
-			CreateHook("KernelBase.dll", "CreateDirectoryW", (void*)&hfnCreateDirectoryW, (void**)&pfnCreateDirectoryW);
-			CreateHook("KernelBase.dll", "CreateDirectoryA", (void*)&hfnCreateDirectoryA, (void**)&pfnCreateDirectoryA);
+			//CreateHook("KernelBase.dll", "CreateFileW", (void*)&hfnCreateFileW, (void**)&pfnCreateFileW);
+			//CreateHook("KernelBase.dll", "CreateDirectoryW", (void*)&hfnCreateDirectoryW, (void**)&pfnCreateDirectoryW);
+			//CreateHook("KernelBase.dll", "CreateDirectoryA", (void*)&hfnCreateDirectoryA, (void**)&pfnCreateDirectoryA);
 			return true;
 		}
 

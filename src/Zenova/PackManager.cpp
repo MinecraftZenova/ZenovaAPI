@@ -32,6 +32,6 @@ namespace Zenova {
 			}
 		}
 
-        return false;
+        return result;
     }
 }

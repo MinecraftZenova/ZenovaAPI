@@ -1,6 +1,7 @@
 #include "ModInfo.h"
 
 #include <fstream>
+#include <utility>
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
@@ -11,7 +12,7 @@ namespace Zenova {
     ModInfo::ModInfo(const std::string& modName) {
         Zenova_Info("Loading " + modName);
 
-        std::string folder = gFolder + "\\mods\\" + modName + "\\";
+        std::string folder = Folder + "\\mods\\" + modName + "\\";
         json::Document modDocument = JsonHelper::OpenFile(folder + "modinfo.json");
         if(!modDocument.IsNull()) {
             mNameId = JsonHelper::FindString(modDocument, "nameId");
@@ -21,6 +22,7 @@ namespace Zenova {
             mMinVersion = JsonHelper::FindString(modDocument, "minVersion");
             mMaxVersion = JsonHelper::FindString(modDocument, "maxVersion");
 
+            Platform::DebugPause();
             mHandle = Platform::LoadModule(folder + mNameId);
             if(mHandle) {
                 using FuncPtr = Mod* (*)();
@@ -41,8 +43,19 @@ namespace Zenova {
         }
     }
 
+    ModInfo::ModInfo(ModInfo&& mod) noexcept :
+        mMod(std::exchange(mod.mMod, nullptr)),
+        mHandle(std::exchange(mod.mHandle, nullptr)),
+        mNameId(std::move(mod.mNameId)),
+        mName(std::move(mod.mName)),
+        mDescription(std::move(mod.mDescription)),
+        mMinVersion(std::move(mod.mMinVersion)),
+        mMaxVersion(std::move(mod.mMaxVersion)),
+        mVersion(std::move(mod.mVersion))
+    {}
+
     ModInfo::~ModInfo() {
-        mMod->Stop();
-        Platform::CloseModule(mHandle);
+		if(mMod) mMod->Stop();
+        if(mHandle) Platform::CloseModule(mHandle);
     }
 }

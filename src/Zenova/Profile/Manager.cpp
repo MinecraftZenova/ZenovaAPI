@@ -7,11 +7,11 @@
 
 namespace Zenova {
     ProfileInfo GetLaunchedProfile() {
-        json::Document prefDocument = JsonHelper::OpenFile(gFolder + "\\preferences.json");
+        json::Document prefDocument = JsonHelper::OpenFile(Folder + "\\preferences.json");
         if(!prefDocument.IsNull()) {
             std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
             if(!profileHash.empty()) {
-                json::Document profilesDocument = JsonHelper::OpenFile(gFolder + "\\profiles.json");
+                json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
                 if(!profilesDocument.IsNull()) {
                     return JsonHelper::FindMember(profilesDocument, profileHash);
                 }
@@ -30,7 +30,7 @@ namespace Zenova {
     void Manager::RefreshList() {
         profiles.clear();
 
-        json::Document profilesDocument = JsonHelper::OpenFile(gFolder + "\\profiles.json");
+        json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
         if(!profilesDocument.IsNull() && profilesDocument.IsArray()) {
             for(auto& profile : profilesDocument.GetArray()) {
                 if(launched.versionId == JsonHelper::FindString(profile, "versionId")) {
@@ -58,6 +58,7 @@ namespace Zenova {
             Zenova_Info("Loading " + profile.name + " profile");
             current = profile;
 
+            mods.reserve(profile.modNames.size());
             for(auto& modName : profile.modNames) {
                 mods.emplace_back(modName);
             }

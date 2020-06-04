@@ -1,5 +1,7 @@
 #include "Zenova/Hook.h"
 
+#include "Zenova/Globals.h"
+
 #include <list>
 
 namespace Zenova {
