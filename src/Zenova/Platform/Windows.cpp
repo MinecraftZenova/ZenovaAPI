@@ -185,7 +185,7 @@ namespace Zenova {
 	#ifdef ZENOVA_API
 		bool Init(void* vars) {
 			if(MH_Initialize() != MH_OK) {
-				throw exception("MinHook failed to initialize, normal launch without hooks");
+				Zenova_Info("MinHook failed to initialize, normal launch without hooks");
 				return false;
 			}
 

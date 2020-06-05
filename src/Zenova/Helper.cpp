@@ -72,11 +72,11 @@ namespace Zenova {
 	std::string GetDataFolder() {
 		std::vector<std::string> folder = {
 			std::getenv("ZENOVA_DATA"),
-			::Util::GetAppDirectoryA() + "\\data",
+			::Util::GetAppDirectoryA() + "\\data", //this seems to return the minecraft exe directory :/
 		};
 
 		for(auto& str : folder) {
-			if(!str.empty() && Util::IsDirectory(str + "\\versions")) {
+			if(!str.empty() && Util::IsFile(str + "\\ZenovaAPI.dll")) {
 				return str;
 			}
 		}
