@@ -63,7 +63,7 @@ namespace Zenova {
 		for(auto& pack : PackManager::instance.behavior_packs) {
 			LambdaPack1 lp { repo, stack };
 			addPackFromPackId(lp,
-				{ mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Resources });
+				{ mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Behavior });
 		}
 		
 		_VanillaGameModuleServer$initializeBehaviorStack(self, gameRules, repo, stack, baseGameVersion);
@@ -92,6 +92,7 @@ namespace Zenova {
 
 			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC2FC0)), getVanillaPacks, (void**)&_getVanillaPacks);
 			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1ABF550)), VanillaGameModuleClient$initializeResourceStack, (void**)&_VanillaGameModuleClient$initializeResourceStack);
+			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC6500)), VanillaGameModuleServer$initializeBehaviorStack, (void**)&_VanillaGameModuleServer$initializeBehaviorStack);
 
 			Zenova_Info("Zenova Started");
 			Zenova_Info("ZenovaData Location: " + Folder);
