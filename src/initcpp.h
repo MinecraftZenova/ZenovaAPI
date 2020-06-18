@@ -1,5 +1,5 @@
 // This file was automatically generated using tools/process_csv.py
-// Generated on Sun May 17 2020 06:49:43 UTC
+// Generated on Thu Jun 18 2020 23:17:49 UTC
 
 #include <Zenova/Hook.h>
 
@@ -7,9 +7,15 @@
 extern "C" {
 	void* _fromString_UUID_mce__SA_AV12_AEBV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std___Z_ptr;
 	void* __parseVersionToString_SemVersion__AEAAXXZ_ptr;
+	void* _getPacks_VanillaInPackagePacks__QEBA_AV_$vector_UMetaData_IInPackagePacks__V_$allocator_UMetaData_IInPackagePacks___std___std__W4PackType___Z_ptr;
+	void* _initializeResourceStack_VanillaGameModuleClient__QEAAXAEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr;
+	void* _initializeBehaviorStack_VanillaGameModuleServer__QEAAXAEBVGameRules__AEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr;
 }
 
 void InitBedrockPointers() {
 	_fromString_UUID_mce__SA_AV12_AEBV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std___Z_ptr = reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x0E555A0));
 	__parseVersionToString_SemVersion__AEAAXXZ_ptr = reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x0E2CCB0));
+	_getPacks_VanillaInPackagePacks__QEBA_AV_$vector_UMetaData_IInPackagePacks__V_$allocator_UMetaData_IInPackagePacks___std___std__W4PackType___Z_ptr = reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC2FC0));
+	_initializeResourceStack_VanillaGameModuleClient__QEAAXAEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr = reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1ABF550));
+	_initializeBehaviorStack_VanillaGameModuleServer__QEAAXAEBVGameRules__AEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr = reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC6500));
 }

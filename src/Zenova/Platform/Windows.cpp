@@ -227,12 +227,28 @@ namespace Zenova {
 			return hFunction;
 		}
 
-		bool CreateHook(void* address, void* funcJump, void** funcTrampoline) {
-			if(MH_CreateHook(address, funcJump, funcTrampoline) != MH_OK)
-				return false;
+		inline std::unordered_map<void*, void**> hooks;
 
-			if(MH_EnableHook(address) != MH_OK)
-				return false;
+		bool CreateHook(void* address, void* funcJump, void** funcTrampoline) {
+			auto& existingHook = hooks.find(address);
+			if(existingHook != hooks.end()) {
+				auto tmp = *existingHook->second;
+				*existingHook->second = funcJump;
+				*funcTrampoline = tmp;
+
+				existingHook->second = funcTrampoline;
+			}
+			else {
+				if(MH_CreateHook(address, funcJump, funcTrampoline) != MH_OK)
+					return false;
+
+				if(MH_EnableHook(address) != MH_OK)
+					return false;
+
+				hooks.insert({ address, funcTrampoline });
+			}
+
+
 
 			return true;
 		}
@@ -246,12 +262,8 @@ namespace Zenova {
 		}
 
 		u32 SetPageProtect(void* addr, size_t len, u32 prot) {
-			DWORD oldProt;
-
-			if(VirtualProtect(addr, len, prot, &oldProt)) {
-				return 0;
-			}
-
+			DWORD oldProt{};
+			VirtualProtect(addr, len, prot, &oldProt);
 			return oldProt;
 		}
 

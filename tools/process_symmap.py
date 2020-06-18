@@ -10,7 +10,7 @@ parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'
 parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
 parser.add_argument('input', metavar='file', type=str, nargs='+', help='input json symbol maps')
 args = parser.parse_args()
-out_file_cpp = open("../src/initcpp.cpp", "w")
+out_file_cpp = open("../src/initcpp.h", "w")
 out_file_asm = open("../src/initasm.asm", "w")
 arch = args.arch
 platform = args.platform
@@ -67,7 +67,7 @@ def generate_init_cpp():
     for a in var_list:
         address = a["address"]
         if address != "":
-            address = " = reinterpret_cast<" + a["name"][:-a["name"].rfind("*")] + ">(Zenova::Hook::SlideAddress(" + address + "))"
+            address = " = reinterpret_cast<" + a["name"][:a["name"].rfind("*")+1] + ">(Zenova::Hook::SlideAddress(" + address + "))"
         output_cpp(a["name"] + address + ";")
     output_cpp("")
     output_cpp("extern \"C\" {")
@@ -83,7 +83,7 @@ def generate_init_cpp():
             loc = a["name"].rfind("*") + 1
             while a["name"][loc] == " ":
                 loc += 1
-            output_cpp("\t" + a["name"][loc:] + " = reinterpret_cast<" + a["name"][:a["name"].rfind("*")] + ">(Zenova::Hook::FindVariable(\"" + a["name"] + "\"));")
+            output_cpp("\t" + a["name"][loc:] + " = reinterpret_cast<" + a["name"][:-a["name"].rfind("*")] + ">(Zenova::Hook::FindVariable(\"" + a["name"] + "\"));")
     for a in symbol_list:
         name_legal = mangled_name_to_variable(a["mangled_name"])
         if a["address"] != "":
@@ -121,9 +121,21 @@ def generate_init_func_x86(size):
         output_asm(a["mangled_name"] + ":")
         output_asm("\tmov rax, [rel " + mangled_name_to_variable(a["mangled_name"]) + "_ptr" + "]")
         output_asm("\tjmp rax")
-    i = 0
     for vtable in vtable_list:
+        i = 0
+        vtable_parent_str = vtable["parent"]
+        vtable_parent = {}
+        if vtable_parent_str:
+            vtable_parent = next((x for x in vtable_list if vtable_parent_str == x["name"]), {})
+
         for a in vtable["functions"]:
+            if vtable_parent:
+                vtable_func_noname = a.replace(vtable["name"], vtable_parent["name"], 1)
+                for b in vtable_parent["functions"][i:]:
+                    if vtable_func_noname == b:
+                        break
+                    i += 1
+
             output_asm("global " + a)
             output_asm(a + ":")
             output_asm("\tmov " + reg + ", [rel " + vtable["name"] + "_vtable]")
@@ -151,7 +163,6 @@ def generate_init_func():
     output_cpp("// This file was automatically generated using tools/process_csv.py")
     output_cpp("// Generated on " + gen_time)
     generate_init_cpp()
-    generate_windows_cpp()
 
     output_asm("; This file was automatically generated using tools/process_csv.py")
     output_asm("; Generated on " + gen_time)

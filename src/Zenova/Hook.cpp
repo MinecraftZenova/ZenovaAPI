@@ -137,5 +137,68 @@ namespace Zenova {
 		uintptr_t FindVariable(const char* variable) {
 			return FindAddressHelper(variables, variable, "variable");
 		}
+
+		class MemoryState {
+			u8* mLocation;
+			std::size_t mSize;
+			std::vector<u8> mBytes;
+			u32 mProtection;
+
+		public:
+			MemoryState(u8* location, std::size_t size) : mLocation(location), mSize(size) {
+				mProtection = Zenova::Platform::SetPageProtect(location, size, 0x40);
+
+				mBytes.reserve(size);
+
+				for(auto i = 0; i < size; ++i) {
+					mBytes.push_back(location[i]);
+				}
+			}
+
+			~MemoryState() {
+				for(auto i = 0; i < mSize; ++i) {
+					mLocation[i] = mBytes.at(i);
+				}
+
+				Zenova::Platform::SetPageProtect(mLocation, mSize, mProtection);
+			}
+		};
+
+		//this is platform and arch dependent right now, need to add support for others in the future 
+		bool Create(void* function, void* funcJump, void* funcTrampoline) {
+			bool successful = false;
+
+			if(Platform::Type == Platform::PlatformType::Windows) {
+				u8* u8Function = reinterpret_cast<u8*>(function);
+
+				if(*(u8Function + 7) == 0xff) {
+					u8* retLocation = u8Function + 7;
+					MemoryState state(retLocation, 2);
+
+					*(retLocation) = 0xc3;
+					*(retLocation + 1) = 0xcc;
+
+					uintptr_t address = reinterpret_cast<uintptr_t(*)()>(function)();
+					successful = Zenova::Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
+				}
+			}
+
+			return successful;
+		}
+
+		bool Create(const char* vtable, void* function, void* funcJump, void* funcTrampoline) {
+			bool successful = false;
+
+			if(Platform::Type == Platform::PlatformType::Windows) {
+				u8* u8Function = reinterpret_cast<u8*>(function);
+
+				if(*(u8Function + 3) == 0xff) {
+					uintptr_t address = FindVTable(vtable) + *reinterpret_cast<u32*>(u8Function + 5);
+					successful = Zenova::Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
+				}
+			}
+
+			return successful;
+		}
 	}
 }

@@ -90,9 +90,9 @@ namespace Zenova {
 		if(canRun) {
 			MessageRedirection console;
 
-			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC2FC0)), getVanillaPacks, (void**)&_getVanillaPacks);
-			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1ABF550)), VanillaGameModuleClient$initializeResourceStack, (void**)&_VanillaGameModuleClient$initializeResourceStack);
-			Zenova::Platform::CreateHook(reinterpret_cast<void*>(Zenova::Hook::SlideAddress(0x1AC6500)), VanillaGameModuleServer$initializeBehaviorStack, (void**)&_VanillaGameModuleServer$initializeBehaviorStack);
+			Zenova::Hook::Create(&VanillaInPackagePacks::getPacks, &getVanillaPacks, &_getVanillaPacks);
+			Zenova::Hook::Create(&VanillaGameModuleClient::initializeResourceStack, &VanillaGameModuleClient$initializeResourceStack, &_VanillaGameModuleClient$initializeResourceStack);
+			Zenova::Hook::Create(&VanillaGameModuleServer::initializeBehaviorStack, &VanillaGameModuleServer$initializeBehaviorStack, &_VanillaGameModuleServer$initializeBehaviorStack);
 
 			Zenova_Info("Zenova Started");
 			Zenova_Info("ZenovaData Location: " + Folder);

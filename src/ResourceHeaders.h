@@ -103,10 +103,22 @@ struct PackIdVersion {
 	}
 };
 
+class VanillaInPackagePacks : public IInPackagePacks {
+public:
+	std::vector<IInPackagePacks::MetaData> getPacks(PackType) const; //virtual but I'm not dealing with that rn
+};
+
 class BaseGameVersion {};
 class ResourcePackRepository {};
 class ResourcePackStack {};
-class VanillaInPackagePacks {};
-struct GameRules {};
-struct VanillaGameModuleClient {};
-struct VanillaGameModuleServer {};
+class GameRules {};
+
+class VanillaGameModuleClient {
+public:
+	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
+};
+
+class VanillaGameModuleServer {
+public:
+	void initializeBehaviorStack(const GameRules&, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
+};

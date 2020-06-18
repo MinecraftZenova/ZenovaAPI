@@ -7,6 +7,18 @@
         {
             "name": "?_parseVersionToString@SemVersion@@AEAAXXZ",
             "address": "0x0E2CCB0"
+        },
+        {
+            "name": "?getPacks@VanillaInPackagePacks@@QEBA?AV?$vector@UMetaData@IInPackagePacks@@V?$allocator@UMetaData@IInPackagePacks@@@std@@@std@@W4PackType@@@Z",
+            "address": "0x1AC2FC0"
+        },
+        {
+            "name": "?initializeResourceStack@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
+            "address": "0x1ABF550"
+        },
+        {
+            "name": "?initializeBehaviorStack@VanillaGameModuleServer@@QEAAXAEBVGameRules@@AEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
+            "address": "0x1AC6500"
         }
     ]
 }

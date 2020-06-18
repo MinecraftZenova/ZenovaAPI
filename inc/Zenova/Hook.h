@@ -60,6 +60,26 @@ namespace Zenova {
 		//EXPORT uintptr_t FindSymbol(const char* scope, const char* function);
 		//EXPORT uintptr_t FindSymbol(const char* function);
 
+		EXPORT bool Create(void* function, void* funcJump, void* funcTrampoline);
+		EXPORT bool Create(const char* vtable, void* function, void* funcJump, void* funcTrampoline);
+
+		template <typename T,
+			std::enable_if_t<std::is_function<typename std::remove_pointer<T>::type>::value>* = nullptr>
+		bool Create(T function, void* funcJump, void* funcTrampoline) {
+			return Create(*reinterpret_cast<void**>(&function), funcJump, funcTrampoline);
+		}
+
+		template <typename T,
+			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
+		bool Create(T function, void* funcJump, void* funcTrampoline) {
+			return Create(*reinterpret_cast<void**>(&function), funcJump, funcTrampoline);
+		}
+
+		template <typename T,
+			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
+		bool Create(const char* vtable, T function, void* funcJump, void* funcTrampoline) {
+			return Create(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline);
+		}
 
 		template<typename T, CallConvention C, typename... Targs>
 		T Call(uintptr_t func, Targs... args) {
