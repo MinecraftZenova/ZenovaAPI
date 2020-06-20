@@ -62,7 +62,6 @@ set(SOURCE_LIST
     "src/Zenova/Helper.cpp"
     "src/Zenova/Hook.cpp"
     "src/Zenova/JsonHelper.cpp"
-    "src/Zenova/Log.cpp"
     "src/Zenova/MessageRedirection.cpp"
     "src/Zenova/Mod.cpp"
     "src/Zenova/PackManager.cpp"

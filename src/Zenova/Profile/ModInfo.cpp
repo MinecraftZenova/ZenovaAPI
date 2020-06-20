@@ -10,7 +10,7 @@
 
 namespace Zenova {
     ModInfo::ModInfo(const std::string& modName) {
-        Zenova_Info("Loading " + modName);
+        logger.info("Loading {}", modName);
 
         std::string folder = Folder + "\\mods\\" + modName + "\\";
         json::Document modDocument = JsonHelper::OpenFile(folder + "modinfo.json");
@@ -33,11 +33,11 @@ namespace Zenova {
                     PackManager::instance.AddMod(folder);
                 }
                 else {
-                    Zenova_Warn("Failed to find CreateMod in " + mNameId);
+                    logger.warn("Failed to find CreateMod in {}", mNameId);
                 }
             }
             else {
-                Zenova_Warn("Failed to load " + mName);
+                logger.warn("Failed to load {}", mName);
                 Platform::ErrorPrinter();
             }
         }

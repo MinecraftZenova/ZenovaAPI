@@ -20,8 +20,6 @@
 #include "ResourceHeaders.h"
 
 namespace Zenova {
-	std::string Folder = "";
-
 	static void(*_getVanillaPacks)(VanillaInPackagePacks*, std::vector<IInPackagePacks::MetaData>&, PackType);
 	void getVanillaPacks(VanillaInPackagePacks* self, std::vector<IInPackagePacks::MetaData>& packs, PackType packType) {
 		_getVanillaPacks(self, packs, packType);
@@ -94,9 +92,9 @@ namespace Zenova {
 			Zenova::Hook::Create(&VanillaGameModuleClient::initializeResourceStack, &VanillaGameModuleClient$initializeResourceStack, &_VanillaGameModuleClient$initializeResourceStack);
 			Zenova::Hook::Create(&VanillaGameModuleServer::initializeBehaviorStack, &VanillaGameModuleServer$initializeBehaviorStack, &_VanillaGameModuleServer$initializeBehaviorStack);
 
-			Zenova_Info("Zenova Started");
-			Zenova_Info("ZenovaData Location: " + Folder);
-			Zenova_Info("Minecraft's BaseAddress: " + ::Util::HexString(BaseAddress));
+			logger.info("Zenova Started");
+			logger.info("ZenovaData Location: {}", Folder);
+			logger.info("Minecraft's BaseAddress: {:x}", BaseAddress);
 
 			//StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");
 			Manager manager;
@@ -105,7 +103,7 @@ namespace Zenova {
 				manager.Update();
 			}
 
-			Zenova_Info("Zenova Stopped");
+			logger.info("Zenova Stopped");
 		}
 
 		Platform::Destroy();

@@ -8,6 +8,7 @@
 #include <iostream>
 #include <array>
 
+#include "Globals.h"
 #include "Zenova/Log.h"
 
 namespace Zenova {
@@ -36,11 +37,11 @@ namespace Zenova {
 			appData.replace(appData.find(replaced), replaced.length(), L"Microsoft.MinecraftUWP");
 
 			minecraft_path = appData;
-			Zenova_Info(minecraft_path);
+			logger.info(minecraft_path);
 		}
 		else {
 			_com_error err(code);
-			Zenova_Error(err.ErrorMessage());
+			logger.error(err.ErrorMessage());
 		}
 	}
 

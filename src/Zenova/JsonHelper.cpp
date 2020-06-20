@@ -1,5 +1,6 @@
 #include "JsonHelper.h"
 
+#include "Globals.h"
 #include "Zenova/Log.h"
 
 namespace Zenova {
@@ -10,7 +11,7 @@ namespace Zenova {
             d.ParseStream(json::IStreamWrapper(ifs));
         }
         else if(missingFile) {
-            Zenova_Warn("\"" + fileLocation + "\" not found");
+            logger.warn("\" {} \" not found", fileLocation);
         }
 
         return d;
@@ -22,7 +23,7 @@ namespace Zenova {
             return objIter->value;
         }
 
-        Zenova_Warn("Couldn't find " + memberStr);
+        logger.warn("Couldn't find {}", memberStr);
         static const json::Value null;
         return null;
     }
@@ -34,7 +35,7 @@ namespace Zenova {
                 return objStr.GetString();
             }
             else {
-                Zenova_Warn(memberStr + " isn't a String");
+                logger.warn("{} isn't a String", memberStr);
             }
         }
 

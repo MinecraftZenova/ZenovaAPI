@@ -1,6 +1,7 @@
 #include "PackManager.h"
 
 #include "JsonHelper.h"
+#include "Globals.h"
 #include "Zenova/Log.h"
 
 namespace Zenova {
@@ -15,7 +16,7 @@ namespace Zenova {
 			if(rpHeaderObj.IsObject()) {
 				std::string packLocation = path.substr(path.find("mods")) + "assets";
 				resource_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(rpHeaderObj, "uuid"));
-				Zenova_Info(packLocation + ": " + resource_packs.back().second);
+				logger.info("{}: {}", packLocation, resource_packs.back().second);
 				result = true;
 			}
 		}
@@ -27,7 +28,7 @@ namespace Zenova {
 			if(bpHeaderObj.IsObject()) {
 				std::string packLocation = path.substr(path.find("mods")) + "data";
 				behavior_packs.emplace_back("..\\..\\..\\" + packLocation, JsonHelper::FindString(bpHeaderObj, "uuid"));
-				Zenova_Info(packLocation + ": " + behavior_packs.back().second);
+				logger.info("{}: {}", packLocation, behavior_packs.back().second);
 				result = true;
 			}
 		}

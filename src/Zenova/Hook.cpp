@@ -5,8 +5,6 @@
 #include <list>
 
 namespace Zenova {
-	uintptr_t BaseAddress = 0;
-
 	namespace Hook {
 		std::unordered_map<std::string, uintptr_t> functions;
 		std::unordered_map<std::string, uintptr_t> vtables;
@@ -122,7 +120,7 @@ namespace Zenova {
 				return symbolMapIter->second;
 			}
 
-			Zenova_Warn(symbol + " " + mapName + " not found");
+			logger.warn("{} in {} not found", symbol, mapName);
 			return 0;
 		}
 

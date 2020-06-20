@@ -14,6 +14,7 @@
 
 #include "Zenova/Common.h"
 #include "Zenova/Log.h"
+#include "Zenova/Globals.h"
 #include "Zenova/StorageResolver.h"
 
 #include "MinHook.h"
@@ -102,9 +103,9 @@ HANDLE __stdcall hfnCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
 	// Check if it's accessing resources; this method should work in all future updates
 	if(filePath.rfind(L"mcworld") != filePath.npos) {
 		//Zenova::Console console("Zenova::CreateFileW");
-		Zenova_Info(std::wstring(L"File: ") + filePath.data());
-		Zenova_Info("{ " + getAccessRightString(dwDesiredAccess) + ", " + getShareRightString(dwShareMode) +  ", "
-			+ getCreationDispositionString(dwCreationDisposition) + ", " + getFlagsAndAttributesString(dwFlagsAndAttributes) + " }");
+		Zenova::logger.info("File: {}", filePath.data());
+		Zenova::logger.info("{{ {}, {}, {}, {} }}", getAccessRightString(dwDesiredAccess), getShareRightString(dwShareMode),
+			getCreationDispositionString(dwCreationDisposition), getFlagsAndAttributesString(dwFlagsAndAttributes));
 
 		//std::wstring newPath(L"D:/minecraftWorlds/");
 		//std::wstring_view strToFind(L"/minecraftWorlds/");
@@ -185,7 +186,7 @@ namespace Zenova {
 	#ifdef ZENOVA_API
 		bool Init(void* vars) {
 			if(MH_Initialize() != MH_OK) {
-				Zenova_Info("MinHook failed to initialize, normal launch without hooks");
+				logger.info("MinHook failed to initialize, normal launch without hooks");
 				return false;
 			}
 
@@ -324,7 +325,7 @@ namespace Zenova {
 				return;
 			}
 
-			Zenova_Error(message_buffer);
+			logger.error(message_buffer);
 			LocalFree(message_buffer);
 		}
 	}

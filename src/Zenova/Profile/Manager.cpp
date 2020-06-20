@@ -47,7 +47,7 @@ namespace Zenova {
             return *profileIter;
         }
         else {
-            Zenova_Error(name + " does not exist in profile list with version: " + launched.versionId);
+            logger.error("{} does not exist in profile list with version: {}", name, launched.versionId);
         }
 
         return ProfileInfo();
@@ -55,7 +55,7 @@ namespace Zenova {
     
     void Manager::Load(const ProfileInfo& profile) {
         if(!profile.name.empty()) {
-            Zenova_Info("Loading " + profile.name + " profile");
+            logger.info("Loading {} profile", profile.name);
             current = profile;
 
             mods.reserve(profile.modNames.size());
@@ -68,7 +68,7 @@ namespace Zenova {
             }
         }
         else {
-            Zenova_Error("Empty Profile");
+            logger.error("Empty Profile");
         }
     }
 

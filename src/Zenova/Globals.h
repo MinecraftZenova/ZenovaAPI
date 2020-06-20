@@ -2,7 +2,10 @@
 
 #include <string>
 
+#include "Zenova/Log.h"
+
 namespace Zenova {
-	extern std::string Folder;
-	extern uintptr_t BaseAddress;
+	inline std::string Folder("");
+	inline uintptr_t BaseAddress = 0;
+	inline Log logger("Zenova");
 }
