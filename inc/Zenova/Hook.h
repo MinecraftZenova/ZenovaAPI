@@ -61,7 +61,7 @@ namespace Zenova {
 		//EXPORT uintptr_t FindSymbol(const char* function);
 
 		EXPORT bool Create(void* function, void* funcJump, void* funcTrampoline);
-		EXPORT bool Create(const char* vtable, void* function, void* funcJump, void* funcTrampoline);
+		EXPORT bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline);
 
 		template <typename T,
 			std::enable_if_t<std::is_function<typename std::remove_pointer<T>::type>::value>* = nullptr>
@@ -77,7 +77,7 @@ namespace Zenova {
 
 		template <typename T,
 			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
-		bool Create(const char* vtable, T function, void* funcJump, void* funcTrampoline) {
+		bool Create(void* vtable, T function, void* funcJump, void* funcTrampoline) {
 			return Create(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline);
 		}
 

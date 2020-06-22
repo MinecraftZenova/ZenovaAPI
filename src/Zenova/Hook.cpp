@@ -184,14 +184,14 @@ namespace Zenova {
 			return successful;
 		}
 
-		bool Create(const char* vtable, void* function, void* funcJump, void* funcTrampoline) {
+		bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline) {
 			bool successful = false;
 
 			if(Platform::Type == Platform::PlatformType::Windows) {
 				u8* u8Function = reinterpret_cast<u8*>(function);
 
 				if(*(u8Function + 3) == 0xff) {
-					uintptr_t address = FindVTable(vtable) + *reinterpret_cast<u32*>(u8Function + 5);
+					uintptr_t address = reinterpret_cast<uintptr_t>(vtable) + *reinterpret_cast<u32*>(u8Function + 5);
 					successful = Zenova::Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
 				}
 			}
