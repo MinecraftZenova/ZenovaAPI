@@ -51,8 +51,8 @@ jobs:
     - name: Upload x64 Build
       uses: actions/upload-artifact@v2
       with:
-        name: ZenovaAPI.dll
-        path: build/ZenovaAPI.dll
+        name: ZenovaAPI
+        path: build/ZenovaAPI.*
 
     - name: Create Tagged Release
       if: env.GIT_TAG != null
@@ -60,4 +60,6 @@ jobs:
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
-        files: build/ZenovaAPI.dll
+        files: |
+          build/ZenovaAPI.dll
+          build/ZenovaAPI.lib
