@@ -22,7 +22,6 @@ namespace Zenova {
             mMinVersion = JsonHelper::FindString(modDocument, "minVersion");
             mMaxVersion = JsonHelper::FindString(modDocument, "maxVersion");
 
-            Platform::DebugPause();
             mHandle = Platform::LoadModule(folder + mNameId);
             if(mHandle) {
                 using FuncPtr = Mod* (*)();

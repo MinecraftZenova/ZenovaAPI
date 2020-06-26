@@ -2,6 +2,11 @@
 
 #include <string>
 
+class BaseGameVersion {};
+class ResourcePackRepository {};
+class ResourcePackStack {};
+class GameRules {};
+
 namespace Core {
 	typedef std::string HeapPathBuffer;
 	typedef std::string Path;
@@ -91,6 +96,15 @@ public:
 	}
 };
 
+class GameModuleClient {
+public:
+	enum class ResourceLoadingPhase : int {
+		VRPhase,
+		DefaultPhase,
+		EducationPhase
+	};
+};
+
 struct PackIdVersion {
 	mce::UUID mId;
 	SemVersion mVersion;
@@ -103,19 +117,22 @@ struct PackIdVersion {
 	}
 };
 
+struct LambdaPack1 {
+	ResourcePackRepository& repo;
+	ResourcePackStack& tempStack;
+};
+
+void addPackFromPackId(LambdaPack1* self, const PackIdVersion& packType);
+
 class VanillaInPackagePacks : public IInPackagePacks {
 public:
 	std::vector<IInPackagePacks::MetaData> getPacks(PackType) const; //virtual but I'm not dealing with that rn
 };
 
-class BaseGameVersion {};
-class ResourcePackRepository {};
-class ResourcePackStack {};
-class GameRules {};
-
 class VanillaGameModuleClient {
 public:
 	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
+	void initializeResourceStack2(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
 };
 
 class VanillaGameModuleServer {

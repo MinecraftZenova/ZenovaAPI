@@ -10,8 +10,12 @@
 #pragma warning(disable:4251)
 
 namespace Zenova {
+	class Manager;
+
 	class EXPORT Mod {
 	protected:
+		Manager* manager;
+
 		Mod();
 	
 	public:
@@ -20,5 +24,7 @@ namespace Zenova {
 		virtual void Update() = 0;
 		virtual void Tick() = 0;
 		virtual void Stop() = 0;
+		void SetManager(Manager* parent) { manager = parent; }
+		const Manager& GetManager() { return *manager; }
 	};
 }

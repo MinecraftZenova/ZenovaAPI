@@ -23,7 +23,6 @@ namespace Zenova {
 
     Manager::Manager() : launched(GetLaunchedProfile()) {
         RefreshList();
-        Load(launched);
     }
     
     //doesn't unload current profile
@@ -52,18 +51,30 @@ namespace Zenova {
 
         return ProfileInfo();
     }
-    
+
+    void Manager::Update() {
+        for(auto& modinfo : mods) {
+            modinfo.mMod->Update();
+        }
+
+        //add a 1/20th second timing
+        for(auto& modinfo : mods) {
+            modinfo.mMod->Tick();
+        }
+    }
+
     void Manager::Load(const ProfileInfo& profile) {
-        if(!profile.name.empty()) {
+        if (!profile.name.empty()) {
             logger.info("Loading {} profile", profile.name);
             current = profile;
 
             mods.reserve(profile.modNames.size());
-            for(auto& modName : profile.modNames) {
+            for (auto& modName : profile.modNames) {
                 mods.emplace_back(modName);
             }
 
-            for(auto& modinfo : mods) {
+            for (auto& modinfo : mods) {
+                modinfo.mMod->SetManager(this);
                 modinfo.mMod->Start();
             }
         }
@@ -78,14 +89,11 @@ namespace Zenova {
         Load(profile);
     }
 
-    void Manager::Update() {
-        for(auto& modinfo : mods) {
-            modinfo.mMod->Update();
-        }
+    std::string Manager::GetLaunchedVersion() const {
+        return launched.versionId;
+    }
 
-        //add a 1/20th second timing
-        for(auto& modinfo : mods) {
-            modinfo.mMod->Tick();
-        }
+    const ProfileInfo& Manager::GetLaunched() const {
+        return launched;
     }
 }

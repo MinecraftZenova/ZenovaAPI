@@ -1,24 +1,47 @@
 {
-    "functions": [
-        {
-            "name": "?fromString@UUID@mce@@SA?AV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
-            "address": "0x0E555A0"
-        },
-        {
-            "name": "?_parseVersionToString@SemVersion@@AEAAXXZ",
-            "address": "0x0E2CCB0"
-        },
-        {
-            "name": "?getPacks@VanillaInPackagePacks@@QEBA?AV?$vector@UMetaData@IInPackagePacks@@V?$allocator@UMetaData@IInPackagePacks@@@std@@@std@@W4PackType@@@Z",
-            "address": "0x1AC2FC0"
-        },
-        {
-            "name": "?initializeResourceStack@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
-            "address": "0x1ABF550"
-        },
-        {
-            "name": "?initializeBehaviorStack@VanillaGameModuleServer@@QEAAXAEBVGameRules@@AEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
-            "address": "0x1AC6500"
-        }
-    ]
+  "functions": [
+    {
+      "name": "?fromString@UUID@mce@@SA?AV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z",
+      "address": {
+        "1.14.60.5": "0x0E555A0",
+        "1.16.0.2": "0x0EEC9C0"
+      }
+    },
+    {
+      "name": "?_parseVersionToString@SemVersion@@AEAAXXZ",
+      "address": {
+        "1.14.60.5": "0x0E2CCB0",
+        "1.16.0.2": "0x0EBD350"
+      }
+    },
+    {
+      "name": "?getPacks@VanillaInPackagePacks@@QEBA?AV?$vector@UMetaData@IInPackagePacks@@V?$allocator@UMetaData@IInPackagePacks@@@std@@@std@@W4PackType@@@Z",
+      "address": {
+        "1.14.60.5": "0x1AC2FC0",
+        "1.16.0.2": "0x1CF1680"
+      }
+    },
+    {
+      "name": "?initializeBehaviorStack@VanillaGameModuleServer@@QEAAXAEBVGameRules@@AEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
+      "address": {
+        "1.14.60.5": "0x1AC6500",
+        "1.16.0.2": "0x1CF4450"
+      }
+    },
+    {
+      "name": "?addPackFromPackId@@YAXPEAULambdaPack1@@AEBUPackIdVersion@@@Z",
+      "address": {
+        "1.14.60.5": "0x1ABF450",
+        "1.16.0.2": "0x1CE6600"
+      }
+    },
+    {
+      "name": "?initializeResourceStack@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
+      "address": "0x1ABF550"
+    },
+    {
+      "name": "?initializeResourceStack2@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@W4ResourceLoadingPhase@GameModuleClient@@@Z",
+      "address": "0x1CE5910"
+    }
+  ]
 }

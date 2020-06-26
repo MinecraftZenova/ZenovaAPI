@@ -4,6 +4,7 @@
 
 #include "ProfileInfo.h"
 #include "ModInfo.h"
+#include <Zenova/Common.h>
 
 namespace Zenova {
     class Manager {
@@ -15,11 +16,13 @@ namespace Zenova {
 
         void RefreshList();
         ProfileInfo GetProfile(const std::string& name);
-        void Load(const ProfileInfo& profile);
-        void Swap(const ProfileInfo& profile);
 
 	public:
         Manager();
         void Update();
+        void Load(const ProfileInfo& profile);
+        void Swap(const ProfileInfo& profile);
+        EXPORT std::string GetLaunchedVersion() const;
+        const ProfileInfo& GetLaunched() const;
 	};
 }
