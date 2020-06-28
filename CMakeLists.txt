@@ -58,6 +58,7 @@ file(GLOB_RECURSE INCLUDE_LIST
 set(SOURCE_LIST 
     "src/ZenovaAPI.rc"
     "src/initasm.asm"
+    "src/initcpp.cpp"
     "src/Zenova/Common.cpp"
     "src/Zenova/Helper.cpp"
     "src/Zenova/Hook.cpp"
