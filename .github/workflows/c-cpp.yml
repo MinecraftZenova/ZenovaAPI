@@ -48,11 +48,28 @@ jobs:
         cmake -S . -B build
         cmake --build build --config Release
 
+    - name: File Upload Setup
+      run: |
+        mkdir dev\lib; cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv inc dev; mv Common\Utils dev\inc
+        mkdir artifact; cp build\ZenovaAPI.dll artifact\ZenovaAPI.dll; cp build\ZenovaAPI.exp artifact\ZenovaAPI.exp; cp build\ZenovaAPI.lib artifact\ZenovaAPI.lib
+
+    - name: Create Development Package
+      uses: papeloto/action-zip@v1
+      with:
+        dest: ZenovaAPI-dev.zip
+        files: dev/
+
+    - name: Upload Development Package
+      uses: actions/upload-artifact@v2
+      with:
+        name: ZenovaAPI-dev
+        path: dev
+
     - name: Upload x64 Build
       uses: actions/upload-artifact@v2
       with:
         name: ZenovaAPI
-        path: build/ZenovaAPI.*
+        path: artifact
 
     - name: Create Tagged Release
       if: env.GIT_TAG != null
@@ -61,5 +78,5 @@ jobs:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
         files: |
+          ZenovaAPI-dev.zip
           build/ZenovaAPI.dll
-          build/ZenovaAPI.lib
