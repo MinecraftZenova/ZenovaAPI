@@ -5,8 +5,13 @@
 #include "Zenova/Log.h"
 
 namespace Zenova {
-	PackManager& PackManager::instance = PackManager();
-    
+	PackManager::PackManager() {}
+
+	PackManager& PackManager::instance() {
+		static PackManager singleton;
+		return singleton;
+	}
+
     bool PackManager::AddMod(const std::string& path) {
 		bool result = false;
 		// resource pack

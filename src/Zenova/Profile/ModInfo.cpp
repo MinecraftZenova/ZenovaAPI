@@ -29,7 +29,7 @@ namespace Zenova {
 
                 if(createMod) {
                     mMod = createMod();
-                    PackManager::instance.AddMod(folder);
+                    PackManager::instance().AddMod(folder);
                 }
                 else {
                     logger.warn("Failed to find CreateMod in {}", mNameId);

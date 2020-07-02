@@ -12,5 +12,7 @@ namespace Zenova {
 
 		ProfileInfo() = default;
 		ProfileInfo(const json::Value& profile);
+
+		operator bool() const;
 	};
 }

@@ -27,4 +27,12 @@ namespace Zenova {
             }
         }
     }
+
+    ProfileInfo::operator bool() const {
+        if (versionId.empty()) {
+            return false;
+        }
+
+        return true;
+    }
 }

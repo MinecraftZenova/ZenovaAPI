@@ -1,10 +1,14 @@
 #pragma once
 
 #include <cstdint>
+#include <type_traits>
 #include <stdexcept>
 #include <string>
 
 #include <Utils/Utils.h>
+
+//I honestly shouldn't do this
+#pragma warning(disable:4251)
 
 #ifdef ZENOVA_API
 #define EXPORT __declspec(dllexport)
@@ -31,6 +35,11 @@ using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
+
+template<typename E, std::enable_if_t<std::is_enum<E>::value>* = nullptr>
+std::underlying_type_t<E> enum_cast(E enumValue) {
+	return static_cast<std::underlying_type_t<E>>(enumValue);
+}
 
 namespace Zenova {
 	//In the future add string operators?

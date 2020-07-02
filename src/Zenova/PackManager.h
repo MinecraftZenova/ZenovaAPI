@@ -5,7 +5,7 @@
 
 namespace Zenova {
     class PackManager {
-		PackManager() {}
+		PackManager();
 
 	public:
 		std::vector<std::pair<std::string, std::string>> resource_packs;
@@ -13,6 +13,6 @@ namespace Zenova {
 
 		bool AddMod(const std::string& path);
 
-		static PackManager& instance;
+		static PackManager& instance();
 	};
 }

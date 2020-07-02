@@ -136,6 +136,29 @@ namespace Zenova {
 			return FindAddressHelper(variables, variable, "variable");
 		}
 
+		bool MemCompare(const char* data, const char* sig, const char* mask) {
+			for (; *mask; ++mask, ++data, ++sig) {
+				if (*mask == 'x' && *data != *sig) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		uintptr_t SigscanCall(const char* sig, const char* mask) {
+			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
+
+			for (size_t i = 0; i < size; ++i) {
+				if (MemCompare(reinterpret_cast<const char*>(BaseAddress + i), sig, mask)) {
+					uintptr_t offset = BaseAddress + i + 1;
+					return offset + 4 + *reinterpret_cast<int*>(offset);
+				}
+			}
+
+			return NULL;
+		}
+
 		class MemoryState {
 			u8* mLocation;
 			std::size_t mSize;

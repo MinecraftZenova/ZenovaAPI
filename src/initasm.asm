@@ -1,5 +1,5 @@
 ; This file was automatically generated using tools/process_csv.py
-; Generated on Fri Jun 26 2020 17:15:30 UTC
+; Generated on Thu Jul 02 2020 10:09:24 UTC
 bits 64
 SECTION .data
 extern _fromString_UUID_mce__SA_AV12_AEBV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std___Z_ptr
@@ -9,6 +9,15 @@ extern _initializeBehaviorStack_VanillaGameModuleServer__QEAAXAEBVGameRules__AEA
 extern _addPackFromPackId__YAXPEAULambdaPack1__AEBUPackIdVersion___Z_ptr
 extern _initializeResourceStack_VanillaGameModuleClient__QEAAXAEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr
 extern _initializeResourceStack2_VanillaGameModuleClient__QEAAXAEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion__W4ResourceLoadingPhase_GameModuleClient___Z_ptr
+extern _registerButtonDownHandler_InputHandler__QEAAXV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std__V_$function_$$A6AXW4FocusImpact__AEAVIClientInstance___Z_3__N_Z_ptr
+extern _registerButtonUpHandler_InputHandler__QEAAXV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std__V_$function_$$A6AXW4FocusImpact__AEAVIClientInstance___Z_3__N_Z_ptr
+extern __registerInputHandlers_MinecraftInputHandler__QEAAXXZ_ptr
+extern _assignDefaultMapping_RemappingLayout__QEAAX$$QEAV_$vector_VKeymapping__V_$allocator_VKeymapping___std___std___Z_ptr
+extern __populateKeyboardDefaults_VanillaClientInputMappingFactory__QEAAXAEAVRemappingLayout___Z_ptr
+extern __populateGamepadDefaults_VanillaClientInputMappingFactory__QEAAXAEAVRemappingLayout___Z_ptr
+extern __addFullKeyboardGamePlayControls_VanillaClientInputMappingFactory__QEAAXAEAVKeyboardInputMapping__AEAVMouseInputMapping___Z_ptr
+extern __addInvariantGamePlayGameControllerControls_VanillaClientInputMappingFactory__QEAAXAEAVGameControllerInputMapping__W4MappingControllerType_ClientInputMappingFactory___Z_ptr
+extern __handleDuplicates_ControlsSettingsScreenController__QEAAXAEAVRemappingLayout___Z_ptr
 
 SECTION .text
 global ?fromString@UUID@mce@@SA?AV12@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z
@@ -38,4 +47,40 @@ global ?initializeResourceStack@VanillaGameModuleClient@@QEAAXAEAVResourcePackRe
 global ?initializeResourceStack2@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@W4ResourceLoadingPhase@GameModuleClient@@@Z
 ?initializeResourceStack2@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@W4ResourceLoadingPhase@GameModuleClient@@@Z:
 	mov rax, [rel _initializeResourceStack2_VanillaGameModuleClient__QEAAXAEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion__W4ResourceLoadingPhase_GameModuleClient___Z_ptr]
+	jmp rax
+global ?registerButtonDownHandler@InputHandler@@QEAAXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXW4FocusImpact@@AEAVIClientInstance@@@Z@3@_N@Z
+?registerButtonDownHandler@InputHandler@@QEAAXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXW4FocusImpact@@AEAVIClientInstance@@@Z@3@_N@Z:
+	mov rax, [rel _registerButtonDownHandler_InputHandler__QEAAXV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std__V_$function_$$A6AXW4FocusImpact__AEAVIClientInstance___Z_3__N_Z_ptr]
+	jmp rax
+global ?registerButtonUpHandler@InputHandler@@QEAAXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXW4FocusImpact@@AEAVIClientInstance@@@Z@3@_N@Z
+?registerButtonUpHandler@InputHandler@@QEAAXV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@V?$function@$$A6AXW4FocusImpact@@AEAVIClientInstance@@@Z@3@_N@Z:
+	mov rax, [rel _registerButtonUpHandler_InputHandler__QEAAXV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std__V_$function_$$A6AXW4FocusImpact__AEAVIClientInstance___Z_3__N_Z_ptr]
+	jmp rax
+global ?_registerInputHandlers@MinecraftInputHandler@@QEAAXXZ
+?_registerInputHandlers@MinecraftInputHandler@@QEAAXXZ:
+	mov rax, [rel __registerInputHandlers_MinecraftInputHandler__QEAAXXZ_ptr]
+	jmp rax
+global ?assignDefaultMapping@RemappingLayout@@QEAAX$$QEAV?$vector@VKeymapping@@V?$allocator@VKeymapping@@@std@@@std@@@Z
+?assignDefaultMapping@RemappingLayout@@QEAAX$$QEAV?$vector@VKeymapping@@V?$allocator@VKeymapping@@@std@@@std@@@Z:
+	mov rax, [rel _assignDefaultMapping_RemappingLayout__QEAAX$$QEAV_$vector_VKeymapping__V_$allocator_VKeymapping___std___std___Z_ptr]
+	jmp rax
+global ?_populateKeyboardDefaults@VanillaClientInputMappingFactory@@QEAAXAEAVRemappingLayout@@@Z
+?_populateKeyboardDefaults@VanillaClientInputMappingFactory@@QEAAXAEAVRemappingLayout@@@Z:
+	mov rax, [rel __populateKeyboardDefaults_VanillaClientInputMappingFactory__QEAAXAEAVRemappingLayout___Z_ptr]
+	jmp rax
+global ?_populateGamepadDefaults@VanillaClientInputMappingFactory@@QEAAXAEAVRemappingLayout@@@Z
+?_populateGamepadDefaults@VanillaClientInputMappingFactory@@QEAAXAEAVRemappingLayout@@@Z:
+	mov rax, [rel __populateGamepadDefaults_VanillaClientInputMappingFactory__QEAAXAEAVRemappingLayout___Z_ptr]
+	jmp rax
+global ?_addFullKeyboardGamePlayControls@VanillaClientInputMappingFactory@@QEAAXAEAVKeyboardInputMapping@@AEAVMouseInputMapping@@@Z
+?_addFullKeyboardGamePlayControls@VanillaClientInputMappingFactory@@QEAAXAEAVKeyboardInputMapping@@AEAVMouseInputMapping@@@Z:
+	mov rax, [rel __addFullKeyboardGamePlayControls_VanillaClientInputMappingFactory__QEAAXAEAVKeyboardInputMapping__AEAVMouseInputMapping___Z_ptr]
+	jmp rax
+global ?_addInvariantGamePlayGameControllerControls@VanillaClientInputMappingFactory@@QEAAXAEAVGameControllerInputMapping@@W4MappingControllerType@ClientInputMappingFactory@@@Z
+?_addInvariantGamePlayGameControllerControls@VanillaClientInputMappingFactory@@QEAAXAEAVGameControllerInputMapping@@W4MappingControllerType@ClientInputMappingFactory@@@Z:
+	mov rax, [rel __addInvariantGamePlayGameControllerControls_VanillaClientInputMappingFactory__QEAAXAEAVGameControllerInputMapping__W4MappingControllerType_ClientInputMappingFactory___Z_ptr]
+	jmp rax
+global ?_handleDuplicates@ControlsSettingsScreenController@@QEAAXAEAVRemappingLayout@@@Z
+?_handleDuplicates@ControlsSettingsScreenController@@QEAAXAEAVRemappingLayout@@@Z:
+	mov rax, [rel __handleDuplicates_ControlsSettingsScreenController__QEAAXAEAVRemappingLayout___Z_ptr]
 	jmp rax

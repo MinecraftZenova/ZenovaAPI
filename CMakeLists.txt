@@ -55,23 +55,31 @@ file(GLOB_RECURSE INCLUDE_LIST
     "src/*.h"
 )
 
-set(SOURCE_LIST 
+file(GLOB_RECURSE SOURCE_LIST
+    "src/*.cpp"
+)
+
+function (remove_srcs)
+    file (GLOB_RECURSE to_remove ${ARGN})
+    list (REMOVE_ITEM SOURCE_LIST ${to_remove})
+    set (SOURCE_LIST ${SOURCE_LIST} PARENT_SCOPE)
+endfunction()
+
+list(APPEND SOURCE_LIST
     "src/ZenovaAPI.rc"
     "src/initasm.asm"
-    "src/initcpp.cpp"
-    "src/Zenova/Common.cpp"
-    "src/Zenova/Helper.cpp"
-    "src/Zenova/Hook.cpp"
-    "src/Zenova/JsonHelper.cpp"
-    "src/Zenova/MessageRedirection.cpp"
-    "src/Zenova/Mod.cpp"
-    "src/Zenova/PackManager.cpp"
-    "src/Zenova/StorageResolver.cpp"
-    "src/Zenova/Platform/Platform.cpp"
-    "src/Zenova/Profile/Manager.cpp"
-    "src/Zenova/Profile/ModInfo.cpp"
-    "src/Zenova/Profile/ProfileInfo.cpp"
 )
+
+if(NOT WIN32)
+    remove_srcs(
+        "src/dllmain.cpp"
+        "src/Zenova/Platform/Windows.cpp"
+    )
+elseif(NOT UNIX)
+    remove_srcs(
+        "src/Zenova/Platform/Linux.cpp"
+    )
+endif()
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -79,11 +87,6 @@ if(WIN32)
     else()
         set(MinHook "${CMAKE_CURRENT_SOURCE_DIR}/lib/libMinHook-x86-v140-mtd.lib")
     endif()
-
-    list(APPEND SOURCE_LIST
-        "src/dllmain.cpp"
-        "src/Zenova/Platform/Windows.cpp"
-    )
 endif()
 
 add_library(ZenovaAPI SHARED

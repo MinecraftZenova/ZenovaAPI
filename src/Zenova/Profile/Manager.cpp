@@ -6,22 +6,14 @@
 #include "Zenova/JsonHelper.h"
 
 namespace Zenova {
-    ProfileInfo GetLaunchedProfile() {
-        json::Document prefDocument = JsonHelper::OpenFile(Folder + "\\preferences.json");
-        if(!prefDocument.IsNull()) {
-            std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
-            if(!profileHash.empty()) {
-                json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
-                if(!profilesDocument.IsNull()) {
-                    return JsonHelper::FindMember(profilesDocument, profileHash);
-                }
-            }
-        }
+    Manager::Manager() {}
 
-        return ProfileInfo();
-    } 
+    void Manager::Init() {
+        launched = GetLaunchedProfile();
 
-    Manager::Manager() : launched(GetLaunchedProfile()) {
+        if (updateVersion)
+            updateVersion(launched.versionId);
+
         RefreshList();
     }
     
@@ -57,16 +49,26 @@ namespace Zenova {
             modinfo.mMod->Update();
         }
 
-        //add a 1/20th second timing
-        for(auto& modinfo : mods) {
-            modinfo.mMod->Tick();
+        //I should probably hook into minecraft's global tick function
+        namespace chrono = std::chrono;
+        using tick = chrono::duration<int, std::ratio<1, 20>>;
+
+        if (chrono::duration_cast<tick>(clock::now() - tickTimer).count() >= 1) {
+            tickTimer = clock::now();
+
+            for (auto& modinfo : mods) {
+                modinfo.mMod->Tick();
+            }
         }
     }
 
     void Manager::Load(const ProfileInfo& profile) {
-        if (!profile.name.empty()) {
+        if (profile) {
             logger.info("Loading {} profile", profile.name);
             current = profile;
+
+            if(updateVersion)
+                updateVersion(profile.versionId);
 
             mods.reserve(profile.modNames.size());
             for (auto& modName : profile.modNames) {
@@ -74,7 +76,6 @@ namespace Zenova {
             }
 
             for (auto& modinfo : mods) {
-                modinfo.mMod->SetManager(this);
                 modinfo.mMod->Start();
             }
         }
@@ -89,11 +90,26 @@ namespace Zenova {
         Load(profile);
     }
 
-    std::string Manager::GetLaunchedVersion() const {
-        return launched.versionId;
+    const ProfileInfo& Manager::GetLaunchedProfile() {
+        static ProfileInfo info;
+
+        if (!info) {
+            json::Document prefDocument = JsonHelper::OpenFile(Folder + "\\preferences.json");
+            if (!prefDocument.IsNull()) {
+                std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
+                if (!profileHash.empty()) {
+                    json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
+                    if (!profilesDocument.IsNull()) {
+                        info = JsonHelper::FindMember(profilesDocument, profileHash);
+                    }
+                }
+            }
+        }
+
+        return info;
     }
 
-    const ProfileInfo& Manager::GetLaunched() const {
-        return launched;
+    void Manager::setVersionCallback(std::function<void(const std::string&)> callback) {
+        updateVersion = callback;
     }
 }

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <iomanip>
+#include <regex>
 #include <string>
+#include <sstream>
+#include <vector>
 
 class BaseGameVersion {};
 class ResourcePackRepository {};
@@ -38,7 +42,57 @@ namespace mce {
 		uint64_t Data[2];
 
 	public:
-		static UUID fromString(const std::string&);
+		UUID() {
+			Data[0] = 0;
+			Data[1] = 0;
+		}
+		
+		UUID(u64 mostSignificantBits, u64 leastSignificantBits) {
+			Data[0] = mostSignificantBits;
+			Data[1] = leastSignificantBits;
+		}
+
+		static UUID fromString(const std::string& in) {
+			u64 mostSignificantBits = 0, leastSignificantBits = 0;
+			int count = 0;
+
+			static std::regex UUIDRegex("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}", std::regex_constants::grep);
+			std::smatch regexMatch;
+			if (std::regex_search(in, regexMatch, UUIDRegex) && 
+				in.length() == regexMatch[0].length()) {
+				for (u32 i = 0; i < in.length(); ++i) {
+					char c = in[i];
+					u8 ca = 0;
+					
+					if (c >= '0' && c <= '9') {
+						ca = c - '0';
+					}
+					else if (c >= 'a' && c <= 'f') {
+						ca = c - 'a' + 10;
+					}
+					else if (c >= 'A' && c <= 'F') {
+						ca = c - 'A' + 10;
+					}
+					else if(c == '-') {
+						continue;
+					}
+					else {
+						break; //invalid character
+					}
+
+					if (++count > 16) {
+						leastSignificantBits |= ca << (0x80 - (4 * count));
+					}
+					else {
+						mostSignificantBits |= ca << (0x40 - (4 * count));
+					}
+				}
+
+				return mce::UUID(mostSignificantBits, leastSignificantBits);
+			}
+
+			return mce::UUID();
+		}
 
 		uint64_t getMostSignificantBits() const {
 			return Data[0];
@@ -72,7 +126,19 @@ class SemVersion {
 	bool mValidVersion;
 	bool mAnyVersion;
 
-	void _parseVersionToString();
+	void _parseVersionToString() {
+		std::stringstream stream;
+		stream << mMajor << "." << mMinor << "." << mPatch;
+
+		if (!mPreRelease.empty()) {
+			stream << "-" << mPreRelease;
+		}
+		if (!mBuildMeta.empty()) {
+			stream << "+" << mBuildMeta;
+		}
+
+		mFullVersionString = stream.str();
+	}
 
 public:
 	SemVersion() {
