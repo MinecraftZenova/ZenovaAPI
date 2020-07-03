@@ -54,12 +54,9 @@ namespace Zenova {
 
 			InitVersionPointers(Minecraft::instance().mVersion);
 
-			Platform::DebugPause();
-			auto getFov = Hook::SigscanCall("\xE8\x00\x00\x00\x00\x0F\x28\xF0\xF3\x44\x0F\x10\x3D\x00\x00\x00\x00", "x????xxxxxxxx????");
-			logger.info("getFov: {:x}", getFov);
-
 			createResourceHooks();
 			createInputHooks();
+
 			manager.Load(manager.GetLaunchedProfile());
 
 			//StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");

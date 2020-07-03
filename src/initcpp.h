@@ -1,13 +1,11 @@
 // This file was automatically generated using tools/process_csv.py
-// Generated on Thu Jul 02 2020 10:09:24 UTC
+// Generated on Thu Jul 02 2020 23:45:53 UTC
 
 #pragma once
 
 #include <Zenova/Hook.h>
 
 extern "C" {
-	extern void* _fromString_UUID_mce__SA_AV12_AEBV_$basic_string_DU_$char_traits_D_std__V_$allocator_D_2__std___Z_ptr;
-	extern void* __parseVersionToString_SemVersion__AEAAXXZ_ptr;
 	extern void* _getPacks_VanillaInPackagePacks__QEBA_AV_$vector_UMetaData_IInPackagePacks__V_$allocator_UMetaData_IInPackagePacks___std___std__W4PackType___Z_ptr;
 	extern void* _initializeBehaviorStack_VanillaGameModuleServer__QEAAXAEBVGameRules__AEAVResourcePackRepository__AEAVResourcePackStack__AEBVBaseGameVersion___Z_ptr;
 	extern void* _addPackFromPackId__YAXPEAULambdaPack1__AEBUPackIdVersion___Z_ptr;

@@ -13,7 +13,7 @@ namespace Zenova {
     Input& InputManager::addInput(const std::string& name, ButtonCallback input) {
         static Input safeguard(input);
 
-        auto it = buttons.insert({ name, { input }});
+        auto it = buttons.insert(std::make_pair(name, Input(input)));
         if (it.second) {
             return it.first->second;
         }

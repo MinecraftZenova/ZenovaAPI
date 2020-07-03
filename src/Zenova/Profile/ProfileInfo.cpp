@@ -12,18 +12,20 @@ namespace Zenova {
             versionId = JsonHelper::FindString(profile, "versionId");
 
             auto& mods = JsonHelper::FindMember(profile, "mods");
-            if(mods.IsArray()) {
-                for(auto& mod : mods.GetArray()) {
-                    if(mod.IsString()) {
-                        modNames.push_back(mod.GetString());
+            if (!mods.IsNull()) {
+                if (mods.IsArray()) {
+                    for (auto& mod : mods.GetArray()) {
+                        if (mod.IsString()) {
+                            modNames.push_back(mod.GetString());
+                        }
                     }
                 }
-            }
-            else if(mods.IsString()) {
-                modNames.push_back(mods.GetString());
-            }
-            else {
-                logger.warn("No mods found in loaded profile");
+                else if (mods.IsString()) {
+                    modNames.push_back(mods.GetString());
+                }
+                else {
+                    logger.warn("No mods found in loaded profile");
+                }
             }
         }
     }

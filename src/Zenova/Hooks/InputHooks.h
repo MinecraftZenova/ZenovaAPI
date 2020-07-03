@@ -78,7 +78,7 @@ namespace Zenova {
 	void _registerInputHandlers(MinecraftInputHandler* self) {
 		__registerInputHandlers(self);
 
-		for (auto [name, input] : InputManager::instance().getInputs()) {
+		for (auto& [name, input] : InputManager::instance().getInputs()) {
 			self->mInput->registerButtonDownHandler("button." + name, 
 													[callback = input.mCallback](FocusImpact, IClientInstance&) {
 														if (callback) 

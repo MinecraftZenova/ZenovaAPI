@@ -56,13 +56,13 @@ namespace mce {
 			u64 mostSignificantBits = 0, leastSignificantBits = 0;
 			int count = 0;
 
-			static std::regex UUIDRegex("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}", std::regex_constants::grep);
+			static std::regex UUIDRegex("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
 			std::smatch regexMatch;
 			if (std::regex_search(in, regexMatch, UUIDRegex) && 
 				in.length() == regexMatch[0].length()) {
 				for (u32 i = 0; i < in.length(); ++i) {
 					char c = in[i];
-					u8 ca = 0;
+					u64 ca = 0;
 					
 					if (c >= '0' && c <= '9') {
 						ca = c - '0';
@@ -88,10 +88,10 @@ namespace mce {
 					}
 				}
 
-				return mce::UUID(mostSignificantBits, leastSignificantBits);
+				return { mostSignificantBits, leastSignificantBits };
 			}
 
-			return mce::UUID();
+			return {};
 		}
 
 		uint64_t getMostSignificantBits() const {

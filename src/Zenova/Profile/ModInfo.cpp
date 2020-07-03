@@ -19,8 +19,23 @@ namespace Zenova {
             mName = JsonHelper::FindString(modDocument, "name");
             mDescription = JsonHelper::FindString(modDocument, "description");
             mVersion = JsonHelper::FindString(modDocument, "version");
-            mMinVersion = JsonHelper::FindString(modDocument, "minVersion");
-            mMaxVersion = JsonHelper::FindString(modDocument, "maxVersion");
+
+            auto& objArray = JsonHelper::FindMember(modDocument, "mcversion");
+            if (!objArray.IsNull()) {
+                if (objArray.IsString()) {
+                    mMcVersion = { objArray.GetString() };
+                }
+                else if (objArray.IsArray()) {
+                    for (auto& ver : objArray.GetArray()) {
+                        if (ver.IsString()) {
+                            mMcVersion.push_back(ver.GetString());
+                        }
+                    }
+                }
+                else {
+                    logger.warn("No version found in {}", modName);
+                }
+            }
 
             mHandle = Platform::LoadModule(folder + mNameId);
             if(mHandle) {
@@ -48,9 +63,8 @@ namespace Zenova {
         mNameId(std::move(mod.mNameId)),
         mName(std::move(mod.mName)),
         mDescription(std::move(mod.mDescription)),
-        mMinVersion(std::move(mod.mMinVersion)),
-        mMaxVersion(std::move(mod.mMaxVersion)),
-        mVersion(std::move(mod.mVersion))
+        mVersion(std::move(mod.mVersion)),
+        mMcVersion(std::move(mMcVersion))
     {}
 
     ModInfo::~ModInfo() {

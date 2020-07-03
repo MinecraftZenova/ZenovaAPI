@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace Zenova {
 	class Mod;
@@ -9,7 +10,8 @@ namespace Zenova {
 		Mod* mMod = nullptr;
 		void* mHandle = nullptr;
 		std::string mNameId, mName = "", mDescription = "";
-		std::string mMinVersion, mMaxVersion, mVersion = "";
+		std::string mVersion = "";
+		std::vector<std::string> mMcVersion;
 
 		ModInfo(const std::string& name);
 		ModInfo(ModInfo&&) noexcept;
