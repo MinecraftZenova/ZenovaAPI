@@ -1,7 +1,8 @@
 {
     "version": [
         "1.14.60.5",
-        "1.16.0.2"
+        "1.16.0.2",
+        "1.16.1.2"
     ],
 
     "functions": [
@@ -9,21 +10,24 @@
             "name": "?getPacks@VanillaInPackagePacks@@QEBA?AV?$vector@UMetaData@IInPackagePacks@@V?$allocator@UMetaData@IInPackagePacks@@@std@@@std@@W4PackType@@@Z",
             "address": [
                 "0x1AC2FC0",
-                "0x1CF1680"
+                "0x1CF1680",
+                "0x1C21960"
             ]
         },
         {
             "name": "?initializeBehaviorStack@VanillaGameModuleServer@@QEAAXAEBVGameRules@@AEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@@Z",
             "address": [
                 "0x1AC6500",
-                "0x1CF4450"
+                "0x1CF4450",
+                "0x1C24700"
             ]
         },
         {
             "name": "?addPackFromPackId@@YAXPEAULambdaPack1@@AEBUPackIdVersion@@@Z",
             "address": [
                 "0x1ABF450",
-                "0x1CE6600"
+                "0x1CE6600",
+                "0x1C16B70"
             ]
         },
         {
@@ -34,7 +38,8 @@
             "name": "?initializeResourceStack2@VanillaGameModuleClient@@QEAAXAEAVResourcePackRepository@@AEAVResourcePackStack@@AEBVBaseGameVersion@@W4ResourceLoadingPhase@GameModuleClient@@@Z",
             "address": [
                 "",
-                "0x1CE5910"
+                "0x1CE5910",
+                "0x1C15EB0"
             ]
         }
     ]
