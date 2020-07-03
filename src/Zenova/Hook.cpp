@@ -146,6 +146,18 @@ namespace Zenova {
 			return true;
 		}
 
+		uintptr_t Sigscan(const char* sig, const char* mask) {
+			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
+
+			for (size_t i = 0; i < size; ++i) {
+				if (MemCompare(reinterpret_cast<const char*>(BaseAddress + i), sig, mask)) {
+					return BaseAddress + i;
+				}
+			}
+
+			return NULL;
+		}
+
 		uintptr_t SigscanCall(const char* sig, const char* mask) {
 			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
 

@@ -57,7 +57,7 @@ namespace Zenova {
 		EXPORT uintptr_t FindMangledSymbol(const char* function);
 		EXPORT uintptr_t FindVTable(const char* vtable);
 		EXPORT uintptr_t FindVariable(const char* variable);
-		EXPORT uintptr_t Sigscan(const std::string& sig);
+		EXPORT uintptr_t Sigscan(const char* sig, const char* mask);
 		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask);
 		//EXPORT uintptr_t FindSymbol(const char* scope, const char* function);
 		//EXPORT uintptr_t FindSymbol(const char* function);
