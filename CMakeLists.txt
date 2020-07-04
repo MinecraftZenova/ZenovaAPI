@@ -57,6 +57,7 @@ file(GLOB_RECURSE INCLUDE_LIST
 
 file(GLOB_RECURSE SOURCE_LIST
     "src/*.cpp"
+    "src/*.asm"
 )
 
 function (remove_srcs)
@@ -67,7 +68,6 @@ endfunction()
 
 list(APPEND SOURCE_LIST
     "src/ZenovaAPI.rc"
-    "src/initasm.asm"
 )
 
 if(NOT WIN32)
@@ -98,6 +98,14 @@ add_library(ZenovaAPI SHARED
 target_link_libraries(ZenovaAPI 
     Common
     ${MinHook}
+)
+
+file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/" maps)
+
+add_custom_command(TARGET ZenovaAPI
+    PRE_BUILD
+    COMMAND py -3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_headers.py -a x64 -p windows -d ${CMAKE_CURRENT_SOURCE_DIR}/src/generated ${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/*.json
+    DEPENDS ${dest}
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})

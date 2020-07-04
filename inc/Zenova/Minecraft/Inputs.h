@@ -10,6 +10,7 @@
 
 #include "Zenova/Minecraft.h"
 
+//add most of the standard keyboard to this to allow for lists like { KeyboardBinding::C, KeyboardBinding::Mouse4 }
 enum class KeyboardBinding : int {
     None,
     Mouse1 = -99,
@@ -50,20 +51,29 @@ class Keybind {
 public:
     std::vector<int> mKeys;
     bool mCreateGui;
-    
+
     Keybind() : mCreateGui(false) {}
     Keybind(const Keybind& other) : mKeys(other.mKeys), mCreateGui(other.mCreateGui) {}
 
-    Keybind(const std::vector<int>& binds, bool gui) : mKeys(binds), mCreateGui(gui) {}
+    Keybind(std::vector<int>&& binds, bool gui) : mKeys(std::move(binds)), mCreateGui(gui) {}
     Keybind(int bind, bool gui = true) : mKeys({ bind }), mCreateGui(gui) {}
-    
-    template<typename E, std::enable_if_t<std::is_enum<E>::value>* = nullptr>
-    Keybind(const std::vector<E>& binds, bool gui) : mCreateGui(gui) {
+
+    void addKey(int bind) {
+        mKeys.push_back(bind);
+    }
+
+    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+    Keybind(std::vector<E>&& binds, bool gui) : mCreateGui(gui) {
         std::transform(binds.begin(), binds.end(), std::back_inserter(mKeys), [](E bind) { return enum_cast(bind); });
     }
 
-    Keybind(KeyboardBinding bind, bool gui) : Keybind(enum_cast(bind), gui) {}
-    Keybind(GamepadBinding bind, bool gui) : Keybind(enum_cast(bind), gui) {}
+    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+    Keybind(E bind, bool gui) : Keybind(enum_cast(bind), gui) {}
+
+    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+    void addKey(E bind) {
+        mKeys.push_back(enum_cast(bind));
+    }
 
     operator bool() const {
         return mKeys.size();
@@ -92,7 +102,7 @@ namespace Zenova {
 
         template<typename T>
         Input& setKeyboardMapping(std::initializer_list<T> binds, bool gui = true) {
-            if constexpr (std::is_enum_v<T>) {
+            if constexpr (std::is_same_v<T, KeyboardBinding>) {
                 mKeyboard = Keybind(binds, gui);
             }
             else if (std::is_integral_v<T>) {
@@ -102,21 +112,17 @@ namespace Zenova {
             return *this;
         }
 
+        template<typename T>
+        Input& addKeyboardBind(T bind) {
+            mKeyboard.addKey(bind);
+
+            return *this;
+        }
+
         // ex: keymapping = { GamepadBinding::DpadLeft }
         template<typename T>
         Input& setGamepadMapping(T bind, bool gui = true) {
             mGamepad = Keybind(bind, gui);
-            return *this;
-        }
-
-        template<typename T>
-        Input& setGamepadMapping(std::initializer_list<T> binds, bool gui = true) {
-            if constexpr (std::is_enum_v<T>) {
-                mGamepad = Keybind(binds, gui);
-            }
-            else if (std::is_integral_v<T>) {
-                mGamepad = Keybind(std::vector<int>(binds.begin(), binds.end()), gui);
-            }
 
             return *this;
         }

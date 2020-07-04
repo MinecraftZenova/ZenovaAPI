@@ -7,7 +7,7 @@
 #include "Zenova/Platform.h"
 #include "Zenova/Helper.h"
 #include "Zenova/Globals.h"
-#include "initcpp.h"
+#include "generated/initcpp.h"
 
 BOOL APIENTRY DllMain(HMODULE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 	Zenova::BaseAddress = Zenova::Platform::GetModuleBaseAddress("Minecraft.Windows.exe");

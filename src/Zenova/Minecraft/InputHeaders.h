@@ -181,6 +181,7 @@ namespace ClientInputMappingFactory {
 }
 
 //VanillaClientInputMappingFactory.h
+//Maybe in the future remove the buffer to make it easier to update?
 class VanillaClientInputMappingFactory {
 	char buffer[0x90];
 public:

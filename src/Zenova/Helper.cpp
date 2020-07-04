@@ -20,7 +20,7 @@
 #include "Hooks/InputHooks.h"
 #include "Hooks/ResourceHooks.h"
 
-#include "initcpp.h"
+#include "generated/initcpp.h"
 
 namespace Zenova {
 	std::string GetDataFolder() {
