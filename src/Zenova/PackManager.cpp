@@ -5,14 +5,10 @@
 #include "Zenova/Log.h"
 
 namespace Zenova {
-	PackManager::PackManager() {}
+	inline std::vector<std::pair<std::string, std::string>> resource_packs;
+	inline std::vector<std::pair<std::string, std::string>> behavior_packs;
 
-	PackManager& PackManager::instance() {
-		static PackManager singleton;
-		return singleton;
-	}
-
-    bool PackManager::AddMod(const std::string& path) {
+    bool PackManager::addMod(const std::string& path) {
 		bool result = false;
 		// resource pack
 		json::Document modDocument = JsonHelper::OpenFile(path + "assets\\manifest.json");
@@ -40,4 +36,12 @@ namespace Zenova {
 
         return result;
     }
+
+	const std::vector<std::pair<std::string, std::string>>& PackManager::getResourcePacks() {
+		return resource_packs;
+	}
+
+	const std::vector<std::pair<std::string, std::string>>& PackManager::getBehaviorPacks() {
+		return behavior_packs;
+	}
 }

@@ -17,23 +17,20 @@ namespace Zenova {
         ProfileInfo launched;
         ProfileInfo current;
 
-        std::function<void(const std::string&)> updateVersion;
-
         using clock = std::chrono::steady_clock;
         std::chrono::time_point<clock> tickTimer = clock::now();
 
 	public:
         Manager();
-        void Init();
-        void Update();
-        void Load(const ProfileInfo& profile);
-        void Swap(const ProfileInfo& profile);
-        const ProfileInfo& GetLaunchedProfile();
-
-        void setVersionCallback(std::function<void(const std::string&)> callback);
+        void init();
+        void update();
+        void load(const ProfileInfo& profile);
+        void swap(const ProfileInfo& profile);
+        const ProfileInfo& getLaunchedProfile();
+        std::string getVersion();
 
     private:
-        void RefreshList();
-        ProfileInfo GetProfile(const std::string& name);
+        void refreshList();
+        ProfileInfo getProfile(const std::string& name);
 	};
 }

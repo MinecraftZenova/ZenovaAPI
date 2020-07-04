@@ -3,5 +3,5 @@
 #include "Zenova/Common.h"
 
 namespace Zenova {
-	u32 __stdcall Start(void* dllHandle);
+	u32 __stdcall start(void* platformArgs);
 }

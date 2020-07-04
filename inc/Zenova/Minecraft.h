@@ -6,11 +6,7 @@
 
 namespace Zenova {
     class EXPORT Minecraft {
-        Minecraft();
-
     public:
-        std::string mVersion;
-
-        static const Minecraft& instance();
+        static std::string version();
     };
 }

@@ -14,6 +14,7 @@
 #include "Zenova/JsonHelper.h"
 #include "Zenova/MessageRedirection.h"
 #include "Zenova/Minecraft.h"
+#include "Zenova/Platform/PlatformImpl.h"
 #include "Zenova/Profile/Manager.h"
 #include "Utils/Utils.h"
 
@@ -23,52 +24,51 @@
 #include "generated/initcpp.h"
 
 namespace Zenova {
-	std::string GetDataFolder() {
-		std::vector<std::string> folder = {
-			std::getenv("ZENOVA_DATA"),
-			::Util::GetAppDirectoryA() + "\\data", //this seems to return the minecraft exe directory :/
-		};
+	u32 __stdcall start(void* platformArgs) {
+		dataFolder = []() -> std::string {
+			std::string folder[] = {
+				std::getenv("ZENOVA_DATA"),
+				::Util::GetAppDirectoryA() + "\\data", //this seems to return the minecraft exe directory :/
+			};
 
-		for(auto& str : folder) {
-			if(!str.empty() && Util::IsFile(str + "\\ZenovaAPI.dll")) {
-				return str;
+			for (auto& str : folder) {
+				if (!str.empty() && Util::IsFile(str + "\\ZenovaAPI.dll")) {
+					return str;
+				}
 			}
-		}
 
-		return "";
-	}
+			return "";
+		}();
 
-	u32 __stdcall Start(void* dllHandle) {
-		Folder = GetDataFolder();
-		bool canRun = (Platform::Init(dllHandle) && !Folder.empty());
-		if(canRun) {
+		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty() && BaseAddress != 0);
+		if(run) {
 			MessageRedirection console;
 
 			logger.info("Zenova Started");
-			logger.info("ZenovaData Location: {}", Folder);
+			logger.info("ZenovaData Location: {}", dataFolder);
 			logger.info("Minecraft's BaseAddress: {:x}", BaseAddress);
 
-			manager.Init();
+			manager.init();
 
-			logger.info("Minecraft's Version: {}", Minecraft::instance().mVersion);
+			logger.info("Minecraft's Version: {}", Minecraft::version());
 
-			InitVersionPointers(Minecraft::instance().mVersion);
+			InitVersionPointers(Minecraft::version());
 
 			createResourceHooks();
 			createInputHooks();
 
-			manager.Load(manager.GetLaunchedProfile());
+			manager.load(manager.getLaunchedProfile());
 
 			//StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");
 
-			while(canRun) {
-				manager.Update();
+			while(run) {
+				manager.update();
 			}
 
 			logger.info("Zenova Stopped");
 		}
 
-		Platform::Destroy();
+		PlatformImpl::Destroy();
 		return 0;
 	}
 }

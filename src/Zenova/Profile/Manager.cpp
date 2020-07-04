@@ -8,20 +8,19 @@
 namespace Zenova {
     Manager::Manager() {}
 
-    void Manager::Init() {
-        launched = GetLaunchedProfile();
+    void Manager::init() {
+        launched = getLaunchedProfile();
 
-        if (updateVersion)
-            updateVersion(launched.versionId);
+        launched.versionId;
 
-        RefreshList();
+        refreshList();
     }
     
     //doesn't unload current profile
-    void Manager::RefreshList() {
+    void Manager::refreshList() {
         profiles.clear();
 
-        json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
+        json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
         if(!profilesDocument.IsNull() && profilesDocument.IsArray()) {
             for(auto& profile : profilesDocument.GetArray()) {
                 if(launched.versionId == JsonHelper::FindString(profile, "versionId")) {
@@ -31,7 +30,7 @@ namespace Zenova {
         }
     }
 
-    ProfileInfo Manager::GetProfile(const std::string& name) {
+    ProfileInfo Manager::getProfile(const std::string& name) {
         auto profileIter = std::find_if(profiles.begin(), profiles.end(), 
             [&name](const ProfileInfo& p) { return p.name == name; });
         if(profileIter != profiles.end()) {
@@ -44,7 +43,7 @@ namespace Zenova {
         return ProfileInfo();
     }
 
-    void Manager::Update() {
+    void Manager::update() {
         for(auto& modinfo : mods) {
             modinfo.mMod->Update();
         }
@@ -62,13 +61,12 @@ namespace Zenova {
         }
     }
 
-    void Manager::Load(const ProfileInfo& profile) {
+    void Manager::load(const ProfileInfo& profile) {
         if (profile) {
             logger.info("Loading {} profile", profile.name);
             current = profile;
 
-            if(updateVersion)
-                updateVersion(profile.versionId);
+            profile.versionId;
 
             mods.reserve(profile.modNames.size());
             for (auto& modName : profile.modNames) {
@@ -84,21 +82,21 @@ namespace Zenova {
         }
     }
 
-    void Manager::Swap(const ProfileInfo& profile) {
+    void Manager::swap(const ProfileInfo& profile) {
         mods.clear();
 
-        Load(profile);
+        load(profile);
     }
 
-    const ProfileInfo& Manager::GetLaunchedProfile() {
+    const ProfileInfo& Manager::getLaunchedProfile() {
         static ProfileInfo info;
 
         if (!info) {
-            json::Document prefDocument = JsonHelper::OpenFile(Folder + "\\preferences.json");
+            json::Document prefDocument = JsonHelper::OpenFile(dataFolder + "\\preferences.json");
             if (!prefDocument.IsNull()) {
                 std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
                 if (!profileHash.empty()) {
-                    json::Document profilesDocument = JsonHelper::OpenFile(Folder + "\\profiles.json");
+                    json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
                     if (!profilesDocument.IsNull()) {
                         info = JsonHelper::FindMember(profilesDocument, profileHash);
                     }
@@ -109,7 +107,7 @@ namespace Zenova {
         return info;
     }
 
-    void Manager::setVersionCallback(std::function<void(const std::string&)> callback) {
-        updateVersion = callback;
+    std::string Manager::getVersion() {
+        return launched.versionId;
     }
 }

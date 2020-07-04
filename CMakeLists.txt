@@ -36,6 +36,14 @@ if(MSVC)
     endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 endif()
 
+set(generated_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
+if(NOT EXISTS ${generated_directory})
+    file(MAKE_DIRECTORY ${generated_directory})
+    file(TOUCH "${generated_directory}/initasm.asm")
+    file(TOUCH "${generated_directory}/initcpp.cpp")
+    file(TOUCH "${generated_directory}/initcpp.h")
+endif()
+
 
 add_compile_definitions(ZENOVA_API)
 
@@ -100,12 +108,10 @@ target_link_libraries(ZenovaAPI
     ${MinHook}
 )
 
-file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/" maps)
-
 add_custom_command(TARGET ZenovaAPI
     PRE_BUILD
     COMMAND py -3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_headers.py -a x64 -p windows -d ${CMAKE_CURRENT_SOURCE_DIR}/src/generated ${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/*.json
-    DEPENDS ${dest}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_headers.py
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})

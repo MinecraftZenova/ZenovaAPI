@@ -4,42 +4,52 @@
 #include <string>
 
 #include "Zenova/Common.h"
-#include "Zenova/Mod.h"
+
+//This honestly needs to be rewritten
 
 namespace Zenova {
-	namespace Platform {
-		enum class PlatformType {
-			Unknown,
-			Windows,
-			Linux,
-		};
-		extern PlatformType Type;
-		std::string TypeToString(const PlatformType& type);
+	enum class PlatformType : int {
+		Unknown,
+		Windows,
+		Linux,
+		Count
+	};
 
-		//Reorganize this somehow :)
-		EXPORT void* FindAddress(const std::string& module, const std::string& function);
-		EXPORT bool CreateHook(void* address, void* funcJump, void** funcTrampoline);
-		EXPORT bool CreateHook(const std::string& module, const std::string& function, void* funcJump, void** funcTrampoline);
-		EXPORT void CreateFileStream(const std::string& path);
-		EXPORT u32 GetRWProtect();
-		EXPORT u32 SetPageProtect(void* addr, size_t len, u32 prot);
-		EXPORT size_t GetVtableSize(uintptr_t** vtableToCheck);
-		EXPORT void ErrorPrinter();
-		EXPORT uintptr_t GetModuleBaseAddress(const std::string& modName);
-		EXPORT uintptr_t GetModuleBaseAddress(const std::wstring& modName);
-		EXPORT u32 GetModuleSize(const char*);
-		EXPORT void DebugPause();
-		EXPORT void OutputDebugMessage(const std::string& message); //Visual Studio, LogCat, something else?
-		EXPORT void OutputDebugMessage(const std::wstring& message);
-		EXPORT void* LoadModule(const std::string& module);
-		EXPORT bool CloseModule(void*);
-		EXPORT void* GetModuleFunction(void* module, const std::string& function);
+	enum class ProtectionFlags : int {
+		None = 1,
+		Read = 2,
+		Write = 4,
+		Execute = 8
+	};
 
-	#ifdef ZENOVA_API
-		inline void* CleanupVariables = nullptr;
+	inline ProtectionFlags operator|(ProtectionFlags a, ProtectionFlags b) {
+		return static_cast<ProtectionFlags>(static_cast<std::underlying_type_t<ProtectionFlags>>(a) | static_cast<std::underlying_type_t<ProtectionFlags>>(b));
+	}
 
-		bool Init(void*);
-		void Destroy();
-	#endif // ZENOVA_API
+	class EXPORT Platform {
+	public:
+		static const PlatformType Type;
+
+		static std::string TypeToString(const PlatformType& type);
+
+		static void* FindAddress(const std::string& module, const std::string& function);
+		static bool CreateHook(void* address, void* funcJump, void** funcTrampoline);
+		static bool CreateHook(const std::string& module, const std::string& function, void* funcJump, void** funcTrampoline);
+		
+		static u32 SetPageProtect(void* addr, size_t len, u32 prot);
+		static u32 SetPageProtect(void* addr, size_t len, ProtectionFlags prot);
+		
+		static void ErrorPrinter();
+
+		static uintptr_t GetModuleBaseAddress(const std::string& modName);
+		static uintptr_t GetModuleBaseAddress(const std::wstring& modName);
+		static u32 GetModuleSize(const char*);
+		static void* LoadModule(const std::string& module);
+		static bool CloseModule(void*);
+		static void* GetModuleFunction(void* module, const std::string& function);
+
+		static void OutputDebugMessage(const std::string& message); //Visual Studio, LogCat, something else?
+		static void OutputDebugMessage(const std::wstring& message);
+		static void DebugPause();
 	};
 }

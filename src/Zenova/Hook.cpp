@@ -179,7 +179,7 @@ namespace Zenova {
 
 		public:
 			MemoryState(u8* location, std::size_t size) : mLocation(location), mSize(size) {
-				mProtection = Zenova::Platform::SetPageProtect(location, size, 0x40);
+				mProtection = Platform::SetPageProtect(location, size, ProtectionFlags::Execute | ProtectionFlags::Write);
 
 				mBytes.reserve(size);
 
@@ -193,7 +193,7 @@ namespace Zenova {
 					mLocation[i] = mBytes.at(i);
 				}
 
-				Zenova::Platform::SetPageProtect(mLocation, mSize, mProtection);
+				Platform::SetPageProtect(mLocation, mSize, mProtection);
 			}
 		};
 
@@ -201,7 +201,7 @@ namespace Zenova {
 		bool Create(void* function, void* funcJump, void* funcTrampoline) {
 			bool successful = false;
 
-			if(Platform::Type == Platform::PlatformType::Windows) {
+			if(Platform::Type == PlatformType::Windows) {
 				u8* u8Function = reinterpret_cast<u8*>(function);
 
 				if(*(u8Function + 7) == 0xff) {
@@ -222,7 +222,7 @@ namespace Zenova {
 		bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline) {
 			bool successful = false;
 
-			if(Platform::Type == Platform::PlatformType::Windows) {
+			if(Platform::Type == PlatformType::Windows) {
 				u8* u8Function = reinterpret_cast<u8*>(function);
 
 				if(*(u8Function + 3) == 0xff) {

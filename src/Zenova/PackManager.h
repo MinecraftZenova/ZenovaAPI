@@ -2,17 +2,14 @@
 
 #include <vector>
 #include <string>
+#include <utility>
 
 namespace Zenova {
     class PackManager {
-		PackManager();
-
 	public:
-		std::vector<std::pair<std::string, std::string>> resource_packs;
-		std::vector<std::pair<std::string, std::string>> behavior_packs;
+		static bool addMod(const std::string& path);
 
-		bool AddMod(const std::string& path);
-
-		static PackManager& instance();
+		static const std::vector<std::pair<std::string, std::string>>& getResourcePacks();
+		static const std::vector<std::pair<std::string, std::string>>& getBehaviorPacks();
 	};
 }

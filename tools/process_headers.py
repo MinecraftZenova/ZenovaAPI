@@ -29,6 +29,10 @@ out_file_cpp = open(directory + "/initcpp.cpp", "w")
 out_file_header = open(directory + "/" + file_header_name, "w")
 out_file_asm = open(directory + "/initasm.asm", "w")
 
+print("cxx output: " + out_file_cpp.name)
+print("hxx output: " + out_file_header.name)
+print("asm output: " + out_file_asm.name)
+
 version_list = []
 symbol_list = []
 vtable_list = []

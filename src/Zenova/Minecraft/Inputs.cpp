@@ -3,12 +3,7 @@
 #include "Zenova/Platform.h"
 
 namespace Zenova {
-    InputManager& InputManager::instance() {
-        static InputManager singleton;
-        return singleton;
-    }
-
-    InputManager::InputManager() {}
+    inline std::unordered_map<std::string, Input> buttons;
 
     Input& InputManager::addInput(const std::string& name, ButtonCallback input) {
         static Input safeguard(input);
@@ -23,7 +18,7 @@ namespace Zenova {
         }
     }
 
-    std::unordered_map<std::string, Input>& InputManager::getInputs() {
+    const std::unordered_map<std::string, Input>& InputManager::getInputs() {
         return buttons;
     }
 }

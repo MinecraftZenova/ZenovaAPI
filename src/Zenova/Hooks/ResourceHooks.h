@@ -10,12 +10,12 @@ namespace Zenova {
 		_getVanillaPacks(self, packs, packType);
 
 		if (packType == PackType::Resources) {
-			for (auto& pack : PackManager::instance().resource_packs) {
+			for (auto& pack : PackManager::getResourcePacks()) {
 				packs.emplace_back(pack.first, true, PackCategory::Custom);
 			}
 		}
 		else if (packType == PackType::Behavior) {
-			for (auto& pack : PackManager::instance().behavior_packs) {
+			for (auto& pack : PackManager::getBehaviorPacks()) {
 				packs.emplace_back(pack.first, true, PackCategory::Custom);
 			}
 		}
@@ -23,7 +23,7 @@ namespace Zenova {
 
 	static void(*_VanillaGameModuleClient$initializeResourceStack)(VanillaGameModuleClient*, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
 	void VanillaGameModuleClient$initializeResourceStack(VanillaGameModuleClient* self, ResourcePackRepository& repo, ResourcePackStack& tempStack, const BaseGameVersion& baseGameVersion) {
-		for (auto& pack : PackManager::instance().resource_packs) {
+		for (auto& pack : PackManager::getResourcePacks()) {
 			LambdaPack1 lp{ repo, tempStack };
 			addPackFromPackId(&lp,
 							  { mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Resources });
@@ -34,7 +34,7 @@ namespace Zenova {
 
 	static void(*_VanillaGameModuleClient$initializeResourceStack2)(VanillaGameModuleClient*, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
 	void VanillaGameModuleClient$initializeResourceStack2(VanillaGameModuleClient* self, ResourcePackRepository& repo, ResourcePackStack& tempStack, const BaseGameVersion& baseGameVersion, GameModuleClient::ResourceLoadingPhase loadingPhase) {
-		for (auto& pack : PackManager::instance().resource_packs) {
+		for (auto& pack : PackManager::getResourcePacks()) {
 			LambdaPack1 lp{ repo, tempStack };
 			addPackFromPackId(&lp,
 							  { mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Resources });
@@ -45,7 +45,7 @@ namespace Zenova {
 
 	static void(*_VanillaGameModuleServer$initializeBehaviorStack)(VanillaGameModuleServer*, const GameRules&, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
 	void VanillaGameModuleServer$initializeBehaviorStack(VanillaGameModuleServer* self, const GameRules& gameRules, ResourcePackRepository& repo, ResourcePackStack& stack, const BaseGameVersion& baseGameVersion) {
-		for (auto& pack : PackManager::instance().behavior_packs) {
+		for (auto& pack : PackManager::getBehaviorPacks()) {
 			LambdaPack1 lp{ repo, stack };
 			addPackFromPackId(&lp,
 							  { mce::UUID::fromString(pack.second), SemVersion(0, 0, 1), PackType::Behavior });
@@ -55,7 +55,7 @@ namespace Zenova {
 	}
 
 	inline void createResourceHooks() {
-		if (Minecraft::instance().mVersion == "1.14.60.5")
+		if (Minecraft::version() == "1.14.60.5")
 			Hook::Create(&VanillaGameModuleClient::initializeResourceStack, &VanillaGameModuleClient$initializeResourceStack, &_VanillaGameModuleClient$initializeResourceStack);
 		else
 			Hook::Create(&VanillaGameModuleClient::initializeResourceStack2, &VanillaGameModuleClient$initializeResourceStack2, &_VanillaGameModuleClient$initializeResourceStack2);

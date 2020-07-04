@@ -129,18 +129,9 @@ namespace Zenova {
     };
 
     class EXPORT InputManager {
-        InputManager();
-
-        std::unordered_map<std::string, Input> buttons;
-
     public:
-        InputManager(const InputManager&) = delete;
-        void operator=(const InputManager&) = delete;
+        static Input& addInput(const std::string& name, ButtonCallback callback);
 
-        static InputManager& instance();
-
-        Input& addInput(const std::string& name, ButtonCallback callback);
-
-        std::unordered_map<std::string, Input>& getInputs();
+        static const std::unordered_map<std::string, Input>& getInputs();
     };      
 }
