@@ -223,10 +223,24 @@ namespace Zenova {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
-				u8* u8Function = reinterpret_cast<u8*>(function);
+				Platform::DebugPause();
 
-				if(*(u8Function + 3) == 0xff) {
-					uintptr_t address = *(reinterpret_cast<uintptr_t*>(vtable) + *reinterpret_cast<u32*>(u8Function + 5));
+				u8* u8Function = reinterpret_cast<u8*>(function) + 3;
+
+				if(*u8Function == 0xff) {
+					u8 modrm = *(u8Function + 1);
+					uintptr_t address = 0;
+					u8* offsetVtable = reinterpret_cast<u8*>(vtable);
+
+					if (modrm == 0x60) {
+						address = *reinterpret_cast<uintptr_t*>(offsetVtable + *reinterpret_cast<u8*>(u8Function + 2));
+					}
+					else if (modrm == 0xA0) {
+						address = *reinterpret_cast<uintptr_t*>(offsetVtable + *reinterpret_cast<u32*>(u8Function + 2));
+					}
+
+					logger.info("{:x}", address);
+
 					successful = Zenova::Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
 				}
 			}
