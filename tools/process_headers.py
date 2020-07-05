@@ -333,8 +333,8 @@ def generate_init_func():
 
 for file_path in in_files:
     for glob_file_path in glob(file_path):
-        print("Parsing Symbol Map:" + glob_file_path)
         file_full_path = os.path.abspath(glob_file_path)
+        print("Parsing Symbol Map: " + file_full_path)
         with open(file_full_path, "r") as f:
             read_json(f)
 generate_init_func()

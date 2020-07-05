@@ -226,7 +226,7 @@ namespace Zenova {
 				u8* u8Function = reinterpret_cast<u8*>(function);
 
 				if(*(u8Function + 3) == 0xff) {
-					uintptr_t address = reinterpret_cast<uintptr_t>(vtable) + *reinterpret_cast<u32*>(u8Function + 5);
+					uintptr_t address = *(reinterpret_cast<uintptr_t*>(vtable) + *reinterpret_cast<u32*>(u8Function + 5));
 					successful = Zenova::Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
 				}
 			}
