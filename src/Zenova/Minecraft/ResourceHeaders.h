@@ -183,12 +183,14 @@ struct PackIdVersion {
 	}
 };
 
-struct LambdaPack1 {
-	ResourcePackRepository& repo;
-	ResourcePackStack& tempStack;
-};
+namespace lambda {
+	struct Pack {
+		ResourcePackRepository& repo;
+		ResourcePackStack& tempStack;
 
-void addPackFromPackId(LambdaPack1* self, const PackIdVersion& packType);
+		void addFromUUID(const PackIdVersion& packType);
+	};
+}
 
 class VanillaInPackagePacks : public IInPackagePacks {
 public:
@@ -198,7 +200,11 @@ public:
 class VanillaGameModuleClient {
 public:
 	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
-	void initializeResourceStack2(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
+};
+
+class VanillaGameModuleClient_1_16 {
+public:
+	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
 };
 
 class VanillaGameModuleServer {

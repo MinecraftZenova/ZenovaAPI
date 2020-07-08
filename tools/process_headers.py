@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(description='Processes headers')
 parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'], required=True)
 parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
 parser.add_argument('-d', '--directory', type=Path, help='directory', default=".")
+parser.add_argument('-o', '--output', type=bool, help='output', default=False)
 parser.add_argument('input', metavar='file', type=str, nargs='+', help='input json symbol maps')
 args = parser.parse_args()
 
@@ -19,6 +20,7 @@ arch = args.arch
 platform = args.platform
 in_files = args.input
 directory = str(args.directory)
+debug_output = args.output
 
 if not os.path.exists(directory):
     os.makedirs(directory)
@@ -29,9 +31,10 @@ out_file_cpp = open(directory + "/initcpp.cpp", "w")
 out_file_header = open(directory + "/" + file_header_name, "w")
 out_file_asm = open(directory + "/initasm.asm", "w")
 
-print("cxx output: " + out_file_cpp.name)
-print("hxx output: " + out_file_header.name)
-print("asm output: " + out_file_asm.name)
+if(debug_output):
+    print("CXX output: " + out_file_cpp.name)
+    print("HXX output: " + out_file_header.name)
+    print("ASM output: " + out_file_asm.name)
 
 version_list = []
 symbol_list = []
@@ -132,6 +135,7 @@ def generate_init_cpp():
     output_header("#pragma once")
     output_header("")
     output_header("#include <Zenova/Hook.h>")
+    output_header("#include <Zenova/Minecraft.h>")
     if len(symbol_list) > 0 or len(vtable_list) > 0:
         output_header("")
         output_header("extern \"C\" {")
@@ -142,7 +146,7 @@ def generate_init_cpp():
         output_header("}")
     output_header("")
     output_header("void InitBedrockPointers();")
-    output_header("void InitVersionPointers(const std::string&);")
+    output_header("void InitVersionPointers(const Zenova::Version&);")
 
     #*.cxx
     output_cxx("")
@@ -199,7 +203,7 @@ def generate_init_cpp():
     output_cxx("}")
     output_cxx("")
 
-    output_cxx("void InitVersionPointers(const std::string& versionId) {")
+    output_cxx("void InitVersionPointers(const Zenova::Version& versionId) {")
 
     #I want to come back and add support for version based signatures
 
@@ -233,7 +237,7 @@ def generate_init_cpp():
 
     prefix = ""
     for version in version_list:
-        output_cxx("\t" + prefix + "if(versionId == \"" + version + "\") {")
+        output_cxx("\t" + prefix + "if(versionId == Zenova::Minecraft::v" + version.replace(".", "_") + ") {")
         for cxx_dict in cxx_dict_list:
             for cxx in cxx_dict.get(version, []):
                 output_cxx(cxx)
@@ -338,9 +342,10 @@ for file_path in in_files:
         with open(file_full_path, "r") as f:
             read_json(f)
 generate_init_func()
-print(cxx_output)
-print(hxx_output)
-print(asm_output)
+if(debug_output):
+    print(cxx_output)
+    print(hxx_output)
+    print(asm_output)
 out_file_cpp.close()
 out_file_header.close()
 out_file_asm.close()

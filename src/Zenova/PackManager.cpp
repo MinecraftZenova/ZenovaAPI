@@ -11,7 +11,7 @@ namespace Zenova {
     bool PackManager::addMod(const std::string& path) {
 		bool result = false;
 		// resource pack
-		json::Document modDocument = JsonHelper::OpenFile(path + "assets\\manifest.json");
+		json::Document modDocument = JsonHelper::OpenFile(path + "assets\\manifest.json", false);
 		if(!modDocument.IsNull()) {
 			auto& rpHeaderObj = JsonHelper::FindMember(modDocument, "header");
 			if(rpHeaderObj.IsObject()) {
@@ -23,7 +23,7 @@ namespace Zenova {
 		}
 
 		// behavior pack
-		modDocument = JsonHelper::OpenFile(path + "data\\manifest.json");
+		modDocument = JsonHelper::OpenFile(path + "data\\manifest.json", false);
 		if(!modDocument.IsNull()) {
 			auto& bpHeaderObj = JsonHelper::FindMember(modDocument, "header");
 			if(bpHeaderObj.IsObject()) {

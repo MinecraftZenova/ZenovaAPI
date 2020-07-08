@@ -70,7 +70,11 @@ namespace Zenova {
 
             mods.reserve(profile.modNames.size());
             for (auto& modName : profile.modNames) {
-                mods.emplace_back(modName);
+                ModInfo mod(modName);
+
+                if (mod.mMod) {
+                    mods.push_back(std::move(mod));
+                }
             }
 
             for (auto& modinfo : mods) {

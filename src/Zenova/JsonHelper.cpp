@@ -1,5 +1,7 @@
 #include "JsonHelper.h"
 
+#include <filesystem>
+
 #include "Globals.h"
 #include "Zenova/Log.h"
 
@@ -7,11 +9,12 @@ namespace Zenova {
     json::Document JsonHelper::OpenFile(const std::string& fileLocation, bool missingFile) {
         json::Document d;
         std::ifstream ifs(fileLocation);
+
         if(ifs.is_open()) {
             d.ParseStream(json::IStreamWrapper(ifs));
         }
         else if(missingFile) {
-            logger.warn("\" {} \" not found", fileLocation);
+            logger.warn("\"{}\" not found", fileLocation);
         }
 
         return d;

@@ -40,7 +40,7 @@ namespace Zenova {
 			return "";
 		}();
 
-		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty() && BaseAddress != 0);
+		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty() && BaseAddress);
 		if(run) {
 			MessageRedirection console;
 
@@ -50,7 +50,7 @@ namespace Zenova {
 
 			manager.init();
 
-			logger.info("Minecraft's Version: {}", Minecraft::version());
+			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
 
 			InitVersionPointers(Minecraft::version());
 
