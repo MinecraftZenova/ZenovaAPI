@@ -21,5 +21,8 @@ namespace Zenova {
         bool operator>=(const Version& rhs) const;
 
         static Version fromString(std::string_view versionStr);
+
+    private:
+        const u64 _buildVersion() const;
     };
 }

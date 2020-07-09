@@ -48,6 +48,8 @@ namespace Zenova {
 		static bool CloseModule(void*);
 		static void* GetModuleFunction(void* module, const std::string& function);
 
+		static uintptr_t GetMinecraftBaseAddress();
+
 		static void OutputDebugMessage(const std::string& message); //Visual Studio, LogCat, something else?
 		static void OutputDebugMessage(const std::wstring& message);
 		static void DebugPause();

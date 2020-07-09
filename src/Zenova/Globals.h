@@ -8,6 +8,5 @@
 namespace Zenova {
 	inline Manager manager;
 	inline std::string dataFolder("");
-	inline uintptr_t BaseAddress = 0;
 	inline Log logger("Zenova");
 }

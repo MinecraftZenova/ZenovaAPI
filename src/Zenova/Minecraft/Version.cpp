@@ -32,10 +32,7 @@ namespace Zenova {
 	}
 
 	bool Version::operator<(const Version& rhs) const {
-		u64 verNum = u64(mMajor) << 0x30 | u64(mMinor) << 0x20 | u64(mPatch) << 0x10 | mRevision,
-			rhsNum = u64(rhs.mMajor) << 0x30 | u64(rhs.mMinor) << 0x20 | u64(rhs.mPatch) << 0x10 | rhs.mRevision;
-
-		return verNum < rhsNum;
+		return _buildVersion() < rhs._buildVersion();
 	}
 
 	bool Version::operator<=(const Version& rhs) const {
@@ -47,10 +44,7 @@ namespace Zenova {
 	}
 
 	bool Version::operator>(const Version& rhs) const {
-		u64 verNum = u64(mMajor) << 0x30 | u64(mMinor) << 0x20 | u64(mPatch) << 0x10 | mRevision,
-			rhsNum = u64(rhs.mMajor) << 0x30 | u64(rhs.mMinor) << 0x20 | u64(rhs.mPatch) << 0x10 | rhs.mRevision;
-
-		return verNum > rhsNum;
+		return _buildVersion() > rhs._buildVersion();
 	}
 
 	bool Version::operator>=(const Version& rhs) const {
@@ -84,5 +78,9 @@ namespace Zenova {
 		}
 
 		return { output[0], output[1], output[2], output[3] };
+	}
+
+	const u64 Version::_buildVersion() const {
+		return u64(mMajor) << 0x30 | u64(mMinor) << 0x20 | u64(mPatch) << 0x10 | u64(mRevision);
 	}
 }

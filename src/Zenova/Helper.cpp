@@ -40,13 +40,13 @@ namespace Zenova {
 			return "";
 		}();
 
-		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty() && BaseAddress);
+		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty());
 		if(run) {
 			MessageRedirection console;
 
 			logger.info("Zenova Started");
 			logger.info("ZenovaData Location: {}", dataFolder);
-			logger.info("Minecraft's BaseAddress: {:x}", BaseAddress);
+			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 
 			manager.init();
 

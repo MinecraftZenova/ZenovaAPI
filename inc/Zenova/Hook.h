@@ -59,8 +59,6 @@ namespace Zenova {
 		EXPORT uintptr_t FindVariable(const char* variable);
 		EXPORT uintptr_t Sigscan(const char* sig, const char* mask);
 		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask);
-		//EXPORT uintptr_t FindSymbol(const char* scope, const char* function);
-		//EXPORT uintptr_t FindSymbol(const char* function);
 
 		EXPORT bool Create(void* function, void* funcJump, void* funcTrampoline);
 		EXPORT bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline);

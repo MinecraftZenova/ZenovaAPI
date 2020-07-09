@@ -266,6 +266,11 @@ namespace Zenova {
 		return GetProcAddress(reinterpret_cast<HMODULE>(module), function.c_str());
 	}
 
+	uintptr_t Platform::GetMinecraftBaseAddress() {
+		static uintptr_t base = GetModuleBaseAddress("Minecraft.Windows.exe");
+		return base;
+	}
+
 	void Platform::OutputDebugMessage(const std::string& message) {
 		OutputDebugStringA(message.c_str());
 	}
