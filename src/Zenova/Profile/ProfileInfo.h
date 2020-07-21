@@ -7,7 +7,7 @@
 
 namespace Zenova {
     struct ProfileInfo {
-		std::string name, created, lastUsed, versionId;
+		std::string name, created, lastUsed, versionId, storagePath;
 		std::vector<std::string> modNames;
 
 		ProfileInfo() = default;

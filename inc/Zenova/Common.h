@@ -43,16 +43,17 @@ std::underlying_type_t<E> enum_cast(E enumValue) {
 
 namespace Zenova {
 	//In the future add string operators?
-	class UniversalString {
+	class EXPORT UniversalString {
+		std::wstring s;
+
 	public:
-		std::wstring wstr;
+		UniversalString();
+		UniversalString(const std::string& pstr);
+		UniversalString(const std::wstring& pwstr);
+		UniversalString(const char* pstr);
+		UniversalString(const wchar_t* pwstr);
 
-		EXPORT UniversalString();
-		EXPORT UniversalString(const std::string& pstr);
-		EXPORT UniversalString(const std::wstring& pwstr);
-		EXPORT UniversalString(const char* pstr);
-		EXPORT UniversalString(const wchar_t* pwstr);
-
-		std::string str() { return Util::WstrToStr(wstr); }
+		std::string str() const;
+		std::wstring wstr() const;
 	};
 }

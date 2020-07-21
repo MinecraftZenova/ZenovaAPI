@@ -6,9 +6,12 @@
 #include <codecvt>
 
 namespace Zenova {
-	UniversalString::UniversalString() : wstr(L"") {}
-	UniversalString::UniversalString(const std::string& pstr) : wstr(Util::StrToWstr(pstr)) {}
-	UniversalString::UniversalString(const std::wstring& pwstr) : wstr(pwstr) {}
-	UniversalString::UniversalString(const char* pstr) : wstr(Util::StrToWstr(pstr)) {}
-	UniversalString::UniversalString(const wchar_t* pwstr) : wstr(pwstr) {}
+	UniversalString::UniversalString() : s(L"") {}
+	UniversalString::UniversalString(const std::string& pstr) : s(Util::StrToWstr(pstr)) {}
+	UniversalString::UniversalString(const std::wstring& pwstr) : s(pwstr) {}
+	UniversalString::UniversalString(const char* pstr) : s(Util::StrToWstr(pstr)) {}
+	UniversalString::UniversalString(const wchar_t* pwstr) : s(pwstr) {}
+
+	std::string UniversalString::str() const { return Util::WstrToStr(s); }
+	std::wstring UniversalString::wstr() const { return s; }
 }

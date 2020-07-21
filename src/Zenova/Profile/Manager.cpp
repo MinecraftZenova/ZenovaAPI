@@ -11,8 +11,6 @@ namespace Zenova {
     void Manager::init() {
         launched = getLaunchedProfile();
 
-        launched.versionId;
-
         refreshList();
     }
     
@@ -66,7 +64,7 @@ namespace Zenova {
             logger.info("Loading {} profile", profile.name);
             current = profile;
 
-            profile.versionId;
+            storage.setPath(profile.storagePath);
 
             mods.reserve(profile.modNames.size());
             for (auto& modName : profile.modNames) {

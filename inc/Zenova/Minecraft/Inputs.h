@@ -13,6 +13,18 @@
 //add most of the standard keyboard to this to allow for lists like { KeyboardBinding::C, KeyboardBinding::Mouse4 }
 enum class KeyboardBinding : int {
     None,
+    F1 = 0x70,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
     Mouse1 = -99,
     Mouse2,
     Mouse3,

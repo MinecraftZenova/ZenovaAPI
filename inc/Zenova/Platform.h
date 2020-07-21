@@ -32,9 +32,9 @@ namespace Zenova {
 
 		static std::string TypeToString(const PlatformType& type);
 
-		static void* FindAddress(const std::string& module, const std::string& function);
+		static void* FindAddress(const char* module, const char* function);
 		static bool CreateHook(void* address, void* funcJump, void** funcTrampoline);
-		static bool CreateHook(const std::string& module, const std::string& function, void* funcJump, void** funcTrampoline);
+		static bool CreateHook(const char* module, const char* function, void* funcJump, void** funcTrampoline);
 		
 		static u32 SetPageProtect(void* addr, size_t len, u32 prot);
 		static u32 SetPageProtect(void* addr, size_t len, ProtectionFlags prot);

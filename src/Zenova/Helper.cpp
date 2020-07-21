@@ -10,7 +10,6 @@
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
-#include "Zenova/StorageResolver.h"
 #include "Zenova/JsonHelper.h"
 #include "Zenova/MessageRedirection.h"
 #include "Zenova/Minecraft.h"
@@ -51,7 +50,7 @@ namespace Zenova {
 			manager.init();
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
-
+			
 			InitVersionPointers(Minecraft::version());
 
 			createResourceHooks();
@@ -59,8 +58,9 @@ namespace Zenova {
 
 			manager.load(manager.getLaunchedProfile());
 
-			//StorageResolver storage(L"minecraftWorlds/", L"D:/MinecraftBedrock/Worlds");
-
+			logger.info("Minecraft folder: {}", storage.minecraft_path_w);
+			logger.info("Minecraft new folder: {}", storage.moved_minecraft_path.wstr());
+			
 			while(run) {
 				manager.update();
 			}

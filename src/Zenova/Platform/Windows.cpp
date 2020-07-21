@@ -7,6 +7,8 @@
 #include <aclapi.h>
 #include <Psapi.h>
 #include <direct.h>
+#include <Shlobj.h>
+#include <comdef.h>
 
 #include <stdexcept>
 #include <iostream>
@@ -15,24 +17,95 @@
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
-#include "Zenova/StorageResolver.h"
 
 #include "MinHook.h"
 
+//Hooks (hfn = hooked function; pfn = pointer (to original) function)
+inline HANDLE(__stdcall* pfnCreateFileW)(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
+HANDLE __stdcall hfnCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
+	std::wstring_view filePath(lpFileName);
+
+	/*
+	if(filePath.rfind(L"mcworld") != filePath.npos) {
+		//Zenova::Console console("Zenova::CreateFileW");
+		Zenova::logger.info("File: {}", filePath.data());
+		Zenova::logger.info("{{ {}, {}, {}, {} }}",
+							getAccessRightString(dwDesiredAccess),
+							getShareRightString(dwShareMode),
+							getCreationDispositionString(dwCreationDisposition),
+							getFlagsAndAttributesString(dwFlagsAndAttributes));
+	}
+	*/
+
+	return pfnCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
+inline HANDLE(__stdcall* pfnCreateDirectoryW)(LPCWSTR, LPSECURITY_ATTRIBUTES);
+HANDLE __stdcall hfnCreateDirectoryW(LPCWSTR lpFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
+	std::wstring_view filePath(lpFileName);
+
+	//need to rewrite this
+
+	return pfnCreateDirectoryW(lpFileName, lpSecurityAttributes);
+}
+
+inline HANDLE(__stdcall* pfnCreateDirectoryA)(LPCSTR, LPSECURITY_ATTRIBUTES);
+HANDLE __stdcall hfnCreateDirectoryA(LPCSTR lpFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
+	std::string_view filePath(lpFileName);
+
+	//need to rewrite this
+
+	return pfnCreateDirectoryA(lpFileName, lpSecurityAttributes);
+}
+
 namespace Zenova {
+	StorageResolver::StorageResolver() {
+		//will have to change this later to meet 1607 expectations of really long filepaths
+		std::array<wchar_t, 1000> szPathW;
+		HRESULT code = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, szPathW.data());
+		if (SUCCEEDED(code)) {
+			// Get the path to the textures folder
+			std::wstring_view szPathView(szPathW.data());
+			std::wstring appData(szPathView.substr(0, szPathView.rfind(L"AC")));
+			appData += L"LocalState/games/com.mojang/";
+
+			//Change all the trailing backslashes into forward slash
+			std::wstring_view replaced = L"\\";
+			for (size_t start = 0, pos = 0, end = appData.find(L"LocalState"); start != end; start = pos + replaced.length()) {
+				pos = appData.find(replaced, start);
+				appData.replace(pos, replaced.length(), L"/");
+			}
+
+			//SHGetFolderPathW doesn't properly captialize this, use lowercase in the future?
+			replaced = L"microsoft.minecraftuwp";
+			appData.replace(appData.find(replaced), replaced.length(), L"Microsoft.MinecraftUWP");
+
+			minecraft_path_w = appData;
+			minecraft_path_s = Util::WstrToStr(appData);
+		}
+		else {
+			_com_error err(code);
+			logger.error(err.ErrorMessage());
+		}
+	}
+
+	void StorageResolver::setPath(const UniversalString& directory) {
+		moved_minecraft_path = directory;
+	}
+
 	namespace PlatformImpl {
 		inline void* CleanupVariables = nullptr;
 
 		bool Init(void* platformArgs) {
 			if (MH_Initialize() != MH_OK) {
-				logger.info("MinHook failed to initialize, normal launch without hooks");
+				logger.warn("MinHook failed to initialize, normal launch without hooks");
 				return false;
 			}
 
 			CleanupVariables = platformArgs;
-			//CreateHook("KernelBase.dll", "CreateFileW", (void*)&hfnCreateFileW, (void**)&pfnCreateFileW);
-			//CreateHook("KernelBase.dll", "CreateDirectoryW", (void*)&hfnCreateDirectoryW, (void**)&pfnCreateDirectoryW);
-			//CreateHook("KernelBase.dll", "CreateDirectoryA", (void*)&hfnCreateDirectoryA, (void**)&pfnCreateDirectoryA);
+			Platform::CreateHook("KernelBase.dll", "CreateFileW", &hfnCreateFileW, (void**)&pfnCreateFileW);
+			Platform::CreateHook("KernelBase.dll", "CreateDirectoryW", &hfnCreateDirectoryW, (void**)&pfnCreateDirectoryW);
+			Platform::CreateHook("KernelBase.dll", "CreateDirectoryA", &hfnCreateDirectoryA, (void**)&pfnCreateDirectoryA);
 			return true;
 		}
 
@@ -115,53 +188,15 @@ std::string getCreationDispositionString(DWORD dwCreationDisposition) {
 	}
 }
 
-//Hooks (hfn = hooked function; pfn = pointer (to original) function)
-inline HANDLE(__stdcall *pfnCreateFileW)(LPCWSTR, DWORD, DWORD, LPSECURITY_ATTRIBUTES, DWORD, DWORD, HANDLE);
-HANDLE __stdcall hfnCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
-	std::wstring_view filePath(lpFileName);
-	
-	/*
-	if(filePath.rfind(L"mcworld") != filePath.npos) {
-		//Zenova::Console console("Zenova::CreateFileW");
-		Zenova::logger.info("File: {}", filePath.data());
-		Zenova::logger.info("{{ {}, {}, {}, {} }}", 
-							getAccessRightString(dwDesiredAccess), 
-							getShareRightString(dwShareMode),
-							getCreationDispositionString(dwCreationDisposition), 
-							getFlagsAndAttributesString(dwFlagsAndAttributes));
-	}
-	*/
-
-	return pfnCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
-}
-
-inline HANDLE(__stdcall *pfnCreateDirectoryW)(LPCWSTR, LPSECURITY_ATTRIBUTES);
-HANDLE __stdcall hfnCreateDirectoryW(LPCWSTR lpFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
-	std::wstring_view filePath(lpFileName);
-
-	//need to rewrite this
-
-	return pfnCreateDirectoryW(lpFileName, lpSecurityAttributes);
-}
-
-inline HANDLE(__stdcall *pfnCreateDirectoryA)(LPCSTR, LPSECURITY_ATTRIBUTES);
-HANDLE __stdcall hfnCreateDirectoryA(LPCSTR lpFileName, LPSECURITY_ATTRIBUTES lpSecurityAttributes) {
-	std::string_view filePath(lpFileName);
-
-	//need to rewrite this
-		
-	return pfnCreateDirectoryA(lpFileName, lpSecurityAttributes);
-}
-
 namespace Zenova {
 	const PlatformType Platform::Type = PlatformType::Windows;
 
-	void* Platform::FindAddress(const std::string& module, const std::string& function) {
-		HMODULE hModule = GetModuleHandleA(module.c_str());
+	void* Platform::FindAddress(const char* module, const char* function) {
+		HMODULE hModule = GetModuleHandleA(module);
 		if(hModule == NULL)
 			return 0;
 
-		FARPROC hFunction = GetProcAddress(hModule, function.c_str());
+		FARPROC hFunction = GetProcAddress(hModule, function);
 		if(hFunction == NULL)
 			return 0;
 

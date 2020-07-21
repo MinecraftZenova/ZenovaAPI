@@ -57,8 +57,8 @@ namespace Zenova {
 			static std::mutex logMutex;
 			std::lock_guard<std::mutex> guard(logMutex);
 
-			std::wstring s = fmt::format(L"[{}] [{}] ", severity.wstr, name.wstr);
-			s += fmt::format(format.wstr + L"\n", (VTStrToWstr(message))...);
+			std::wstring s = fmt::format(L"[{}] [{}] ", severity.wstr(), name.wstr());
+			s += fmt::format(format.wstr() + L"\n", (VTStrToWstr(message))...);
 
 			Platform::OutputDebugMessage(s);
 			std::wcout << s << std::flush;
