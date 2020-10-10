@@ -42,7 +42,7 @@ namespace Zenova {
 	public:
 		Log(const UniversalString& name) : mName(name) {}
 
-		static void Write(Severity severity, const UniversalString& name, const UniversalString& format, const fmt::wformat_args& args);
+		static EXPORT void Write(Severity severity, const UniversalString& name, const UniversalString& format, const fmt::wformat_args& args);
 
 		template<typename... Args>
 		static void Write(Severity severity, const UniversalString& name, const UniversalString& format, const Args&... args) {

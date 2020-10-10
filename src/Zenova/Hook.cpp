@@ -54,9 +54,10 @@ namespace Zenova {
 
 		//doesn't work for inlined dtors, need to put an error message when there's a vtable load at the start
 		uintptr_t GetRealDtor(uintptr_t virtualDtor) {
-			u8* iaddr = reinterpret_cast<u8*>(*reinterpret_cast<uintptr_t*>(virtualDtor));
+			virtualDtor = *reinterpret_cast<uintptr_t*>(virtualDtor); 
+			u8* iaddr = reinterpret_cast<u8*>(virtualDtor);
 			if (MemCompare(reinterpret_cast<const char*>(iaddr), "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\x48\x8B\xF9", "xxxx?xxxxxxxxxx")) {
-				return *reinterpret_cast<uintptr_t*>(iaddr + 0xF);
+				return virtualDtor + 0x14 + *reinterpret_cast<int32_t*>(iaddr + 0x10);
 			}
 
 			Zenova_Warn("0x{:x} is not a valid virtual dtor, dtor maybe inlined?", virtualDtor);
@@ -83,7 +84,7 @@ namespace Zenova {
 				uintptr_t iaddr = SlideAddress(i);
 				if (MemCompare(reinterpret_cast<const char*>(iaddr), sig, mask)) {
 					uintptr_t offset = iaddr + 1;
-					return offset + 4 + *reinterpret_cast<int*>(offset);
+					return offset + 4 + *reinterpret_cast<int32_t*>(offset);
 				}
 			}
 

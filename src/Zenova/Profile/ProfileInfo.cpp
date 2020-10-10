@@ -10,7 +10,7 @@ namespace Zenova {
             created = JsonHelper::FindString(profile, "created");
             lastUsed = JsonHelper::FindString(profile, "lastUsed");
             versionId = JsonHelper::FindString(profile, "versionId");
-            storagePath = JsonHelper::FindString(profile, "storagePath", false);
+            storagePath = JsonHelper::FindString(profile, "gameDir", false);
 
             auto& mods = JsonHelper::FindMember(profile, "mods", false);
             if (!mods.IsNull()) {

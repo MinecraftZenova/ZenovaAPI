@@ -58,8 +58,7 @@ namespace Zenova {
 
 			manager.load(manager.getLaunchedProfile());
 
-			logger.info("Minecraft folder: {}", storage.minecraft_path_w);
-			logger.info("Minecraft new folder: {}", storage.moved_minecraft_path.wstr());
+			logger.info("Minecraft folder: {}", storage.minecraft_path);
 			
 			while(run) {
 				manager.update();
