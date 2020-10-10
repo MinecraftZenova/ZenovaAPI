@@ -15,7 +15,7 @@ namespace Zenova {
 	inline std::wstring VTStrToWstr(const std::string& str) { return std::wstring(str.begin(), str.end()); }
 	inline std::wstring VTStrToWstr(std::string&& str) { return std::wstring(str.begin(), str.end()); }
 	inline std::wstring VTStrToWstr(const char* str) { return VTStrToWstr(std::string(str)); }
-	inline std::wstring VTStrToWstr(std::string_view str) { return VTStrToWstr(str.data()); }
+	inline std::wstring VTStrToWstr(std::string_view str) { return VTStrToWstr(std::string(str)); }
 
 	template<typename T>
 	inline T VTStrToWstr(T&& ret) { return ret; }
