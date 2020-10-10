@@ -52,6 +52,17 @@ namespace Zenova {
 			return true;
 		}
 
+		//doesn't work for inlined dtors, need to put an error message when there's a vtable load at the start
+		uintptr_t GetRealDtor(uintptr_t virtualDtor) {
+			u8* iaddr = reinterpret_cast<u8*>(*reinterpret_cast<uintptr_t*>(virtualDtor));
+			if (MemCompare(reinterpret_cast<const char*>(iaddr), "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\x48\x8B\xF9", "xxxx?xxxxxxxxxx")) {
+				return *reinterpret_cast<uintptr_t*>(iaddr + 0xF);
+			}
+
+			Zenova_Warn("0x{:x} is not a valid virtual dtor, dtor maybe inlined?", virtualDtor);
+			return 0;
+		}
+
 		uintptr_t Sigscan(const char* sig, const char* mask) {
 			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
 
@@ -62,7 +73,7 @@ namespace Zenova {
 				}
 			}
 
-			return NULL;
+			return 0;
 		}
 
 		uintptr_t SigscanCall(const char* sig, const char* mask) {
@@ -76,7 +87,7 @@ namespace Zenova {
 				}
 			}
 
-			return NULL;
+			return 0;
 		}
 
 		class MemoryState {
@@ -133,18 +144,18 @@ namespace Zenova {
 				u8* u8Function = reinterpret_cast<u8*>(function) + 3;
 
 				if(*u8Function == 0xff) {
-					u8 modrm = *(u8Function + 1);
 					u8* offsetVtable = reinterpret_cast<u8*>(vtable);
-					uintptr_t address = 0;
+					void* address = nullptr;
 
+					u8 modrm = *(u8Function + 1);
 					if (modrm == 0x60) {
-						address = *reinterpret_cast<uintptr_t*>(offsetVtable + *reinterpret_cast<u8*>(u8Function + 2));
+						address = *reinterpret_cast<void**>(offsetVtable + *reinterpret_cast<u8*>(u8Function + 2));
 					}
 					else if (modrm == 0xA0) {
-						address = *reinterpret_cast<uintptr_t*>(offsetVtable + *reinterpret_cast<u32*>(u8Function + 2));
+						address = *reinterpret_cast<void**>(offsetVtable + *reinterpret_cast<u32*>(u8Function + 2));
 					}
 
-					successful = Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
+					successful = Platform::CreateHook(address, funcJump, reinterpret_cast<void**>(funcTrampoline));
 				}
 			}
 
