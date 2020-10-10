@@ -5,7 +5,7 @@
 #include <iterator>
 #include <string>
 #include <utility>
-#include <unordered_map>
+#include <vector>
 #include <initializer_list>
 
 #include "Zenova/Minecraft.h"
@@ -193,6 +193,6 @@ namespace Zenova {
     public:
         static Input& addInput(const std::string& name, ButtonCallback callback);
 
-        static const std::unordered_map<std::string, Input>& getInputs();
+        static const std::vector<std::pair<std::string, Input>>& getInputs();
     };      
 }

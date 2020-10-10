@@ -3,14 +3,18 @@
 #include "Zenova/Platform.h"
 
 namespace Zenova {
-    inline std::unordered_map<std::string, Input> buttons;
+    inline std::vector<std::pair<std::string, Input>> buttons;
 
     Input& InputManager::addInput(const std::string& name, ButtonCallback input) {
         static Input safeguard(input);
 
-        auto it = buttons.insert(std::make_pair(name, Input(input)));
-        if (it.second) {
-            return it.first->second;
+        //I'm open to a better formatting for this
+        if (std::find_if(
+            buttons.begin(), buttons.end(),
+            [&name](const std::pair<std::string, Input>& elem) {
+                return name == elem.first;
+            }) == buttons.end()) {
+            return buttons.emplace_back(std::make_pair(name, Input(input))).second;
         }
         else {
             Zenova_Warn("Input {} already exists", name);
@@ -18,7 +22,7 @@ namespace Zenova {
         }
     }
 
-    const std::unordered_map<std::string, Input>& InputManager::getInputs() {
+    const std::vector<std::pair<std::string, Input>>& InputManager::getInputs() {
         return buttons;
     }
 }
