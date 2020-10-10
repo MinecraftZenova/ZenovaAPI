@@ -15,7 +15,7 @@ namespace Zenova {
 	inline std::wstring VTStrToWstr(const std::string& str) { return std::wstring(str.begin(), str.end()); }
 	inline std::wstring VTStrToWstr(std::string&& str) { return std::wstring(str.begin(), str.end()); }
 	inline std::wstring VTStrToWstr(const char* str) { return VTStrToWstr(std::string(str)); }
-	inline std::wstring VTStrToWstr(std::string_view str) { return VTStrToWstr(str.data()); }
+	inline std::wstring VTStrToWstr(std::string_view str) { return VTStrToWstr(std::string(str)); }
 
 	template<typename T>
 	inline T VTStrToWstr(T&& ret) { return ret; }
@@ -31,82 +31,47 @@ namespace Zenova {
 			Error
 		};
 
-		inline Log(const UniversalString& name) : mName(name) {}
+	protected:
+		static const wchar_t* _serverityToString(Severity severity);
 
 		template<typename... Args>
-		inline void write(Severity severity, const UniversalString& format, const Args&... args) {
+		static fmt::wformat_args ArgsHelper(const Args&... args) {
+			return fmt::make_format_args<fmt::wformat_context>(args...);
+		}
+
+	public:
+		Log(const UniversalString& name) : mName(name) {}
+
+		static void Write(Severity severity, const UniversalString& name, const UniversalString& format, const fmt::wformat_args& args);
+
+		template<typename... Args>
+		static void Write(Severity severity, const UniversalString& name, const UniversalString& format, const Args&... args) {
+			Write(severity, name, format, ArgsHelper((VTStrToWstr(args))...)); //this may run into lifetime issues
+		}
+
+		template<typename... Args>
+		void write(Severity severity, const UniversalString& format, const Args&... args) {
 			Write(severity, mName, format, args...);
 		}
 
 		template<typename... Args>
-		inline void info(const UniversalString& format, const Args&... args) {
-			Info(mName, format, args...);
-		}
-		template<typename... Args>
-		inline void warn(const UniversalString& format, const Args&... args) {
-			Warn(mName, format, args...);
+		void info(const UniversalString& format, const Args&... args) {
+			Write(Severity::Info, mName, format, args...);
 		}
 
 		template<typename... Args>
-		inline void error(const UniversalString& format, const Args&... args) {
-			Error(mName, format, args...);
+		void warn(const UniversalString& format, const Args&... args) {
+			Write(Severity::Warning, mName, format, args...);
 		}
 
 		template<typename... Args>
-		static void Write(UniversalString severity, const UniversalString& name, const UniversalString& format, const Args&... message) {
-			static std::mutex logMutex;
-			std::lock_guard<std::mutex> guard(logMutex);
-
-			std::wstring s = fmt::format(L"[{}] [{}] ", severity.wstr(), name.wstr());
-			s += fmt::format(format.wstr() + L"\n", (VTStrToWstr(message))...);
-
-			Platform::OutputDebugMessage(s);
-			std::wcout << s << std::flush;
-		}
-
-		template<typename... Args>
-		static void Write(Severity severity, const UniversalString& name, const UniversalString& format, const Args&... message) {
-			Write(_serverityToString(severity), name, format, message...);
-		}
-
-		template<typename... Args>
-		static void Info(const UniversalString& name, const UniversalString& format, const Args&... args) {
-			Write(Severity::Info, name, format, args...);
-		}
-
-		template<typename... Args>
-		static void Warn(const UniversalString& name, const UniversalString& format, const Args&... args) {
-			Write(Severity::Warning, name, format, args...);
-		}
-
-		template<typename... Args>
-		static void Error(const UniversalString& name, const UniversalString& format, const Args&... args) {
-			Write(Severity::Error, name, format, args...);
-		}
-	
-	protected:
-		static std::string _serverityToString(Severity severity) {
-			switch(severity) {
-				case Severity::None: {
-					return "";
-				}
-				case Severity::Info: {
-					return "Info";
-				}
-				case Severity::Warning: {
-					return "Warning";
-				}
-				case Severity::Error: {
-					return "Error";
-				}
-				default: {
-					return "Unknown";
-				}
-			}
+		void error(const UniversalString& format, const Args&... args) {
+			Write(Severity::Error, mName, format, args...);
 		}
 	};
 }
 
-#define Zenova_Info(f, ...) Zenova::Log::Info(FSIG, f, __VA_ARGS__)
-#define Zenova_Warn(f, ...) Zenova::Log::Warn(FSIG, f, __VA_ARGS__)
-#define Zenova_Error(f, ...) Zenova::Log::Error(FSIG, f, __VA_ARGS__)
+#define Zenova_Log(type, f, ...) Zenova::Log::Write(Zenova::Log::Severity::type, FSIG, f, __VA_ARGS__)
+#define Zenova_Info(f, ...) Zenova_Log(Info, f, __VA_ARGS__)
+#define Zenova_Warn(f, ...) Zenova_Log(Warning, f, __VA_ARGS__)
+#define Zenova_Error(f, ...) Zenova_Log(Error, f, __VA_ARGS__)
