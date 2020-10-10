@@ -57,6 +57,9 @@ namespace Zenova {
 		EXPORT uintptr_t FindMangledSymbol(const char* function);
 		EXPORT uintptr_t FindVTable(const char* vtable);
 		EXPORT uintptr_t FindVariable(const char* variable);
+
+		// virtualDtor = address of the generated dtor in the vtable (msvc)
+		EXPORT uintptr_t GetRealDtor(uintptr_t virtualDtor);
 		EXPORT uintptr_t Sigscan(const char* sig, const char* mask);
 		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask);
 
