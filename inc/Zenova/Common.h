@@ -22,26 +22,26 @@
 	#define FSIG __func__
 #endif
 
-using exception = std::runtime_error;
-
-//unsigned int types
-using u8 = uint8_t;
-using u16 = uint16_t;
-using u32 = uint32_t;
-using u64 = uint64_t;
-
-//signed int types
-using i8 = int8_t;
-using i16 = int16_t;
-using i32 = int32_t;
-using i64 = int64_t;
-
-template<typename E, std::enable_if_t<std::is_enum<E>::value>* = nullptr>
-std::underlying_type_t<E> enum_cast(E enumValue) {
-	return static_cast<std::underlying_type_t<E>>(enumValue);
-}
-
 namespace Zenova {
+	using exception = std::runtime_error;
+
+	//unsigned int types
+	using u8 = uint8_t;
+	using u16 = uint16_t;
+	using u32 = uint32_t;
+	using u64 = uint64_t;
+
+	//signed int types
+	using i8 = int8_t;
+	using i16 = int16_t;
+	using i32 = int32_t;
+	using i64 = int64_t;
+
+	template<typename E, std::enable_if_t<std::is_enum<E>::value>* = nullptr>
+	constexpr std::underlying_type_t<E> enum_cast(E enumValue) {
+		return static_cast<std::underlying_type_t<E>>(enumValue);
+	}
+
 	//In the future add string operators?
 	class EXPORT UniversalString {
 		std::wstring s;

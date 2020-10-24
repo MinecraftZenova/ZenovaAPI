@@ -108,41 +108,41 @@ enum class InputType {
     Xbox
 };
 
-class Keybind {
-public:
-    std::vector<int> mKeys;
-    bool mCreateGui;
-
-    Keybind() : mCreateGui(false) {}
-    Keybind(const Keybind& other) : mKeys(other.mKeys), mCreateGui(other.mCreateGui) {}
-
-    Keybind(std::vector<int>&& binds, bool gui) : mKeys(std::move(binds)), mCreateGui(gui) {}
-    Keybind(int bind, bool gui = true) : mKeys({ bind }), mCreateGui(gui) {}
-
-    void addKey(int bind) {
-        mKeys.push_back(bind);
-    }
-
-    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
-    Keybind(std::vector<E>&& binds, bool gui) : mCreateGui(gui) {
-        std::transform(binds.begin(), binds.end(), std::back_inserter(mKeys), [](E bind) { return enum_cast(bind); });
-    }
-
-    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
-    Keybind(E bind, bool gui) : Keybind(enum_cast(bind), gui) {}
-
-    template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
-    void addKey(E bind) {
-        mKeys.push_back(enum_cast(bind));
-    }
-
-    operator bool() const {
-        return mKeys.size();
-    }
-};
-
 namespace Zenova {
     using ButtonCallback = std::function<void(bool)>;
+
+    class Keybind {
+    public:
+        std::vector<int> mKeys;
+        bool mCreateGui;
+
+        Keybind() : mCreateGui(false) {}
+        Keybind(const Keybind& other) : mKeys(other.mKeys), mCreateGui(other.mCreateGui) {}
+
+        Keybind(std::vector<int>&& binds, bool gui) : mKeys(std::move(binds)), mCreateGui(gui) {}
+        Keybind(int bind, bool gui = true) : mKeys({ bind }), mCreateGui(gui) {}
+
+        void addKey(int bind) {
+            mKeys.push_back(bind);
+        }
+
+        template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+        Keybind(std::vector<E>&& binds, bool gui) : mCreateGui(gui) {
+            std::transform(binds.begin(), binds.end(), std::back_inserter(mKeys), [](E bind) { return enum_cast(bind); });
+        }
+
+        template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+        Keybind(E bind, bool gui) : Keybind(enum_cast(bind), gui) {}
+
+        template<typename E, std::enable_if_t<std::is_enum_v<E>>* = nullptr>
+        void addKey(E bind) {
+            mKeys.push_back(enum_cast(bind));
+        }
+
+        operator bool() const {
+            return mKeys.size();
+        }
+    };
 
     struct Input {
         ButtonCallback mCallback;

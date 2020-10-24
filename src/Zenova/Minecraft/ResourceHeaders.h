@@ -47,22 +47,22 @@ namespace mce {
 			Data[1] = 0;
 		}
 		
-		UUID(u64 mostSignificantBits, u64 leastSignificantBits) {
+		UUID(uint64_t mostSignificantBits, uint64_t leastSignificantBits) {
 			Data[0] = mostSignificantBits;
 			Data[1] = leastSignificantBits;
 		}
 
 		static UUID fromString(const std::string& in) {
-			u64 mostSignificantBits = 0, leastSignificantBits = 0;
+			uint64_t mostSignificantBits = 0, leastSignificantBits = 0;
 			int count = 0;
 
 			static std::regex UUIDRegex("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
 			std::smatch regexMatch;
 			if (std::regex_search(in, regexMatch, UUIDRegex) && 
 				in.length() == regexMatch[0].length()) {
-				for (u32 i = 0; i < in.length(); ++i) {
+				for (uint32_t i = 0; i < in.length(); ++i) {
 					char c = in[i];
-					u64 ca = 0;
+					uint64_t ca = 0;
 					
 					if (c >= '0' && c <= '9') {
 						ca = c - '0';

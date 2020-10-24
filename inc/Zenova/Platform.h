@@ -23,7 +23,7 @@ namespace Zenova {
 	};
 
 	inline ProtectionFlags operator|(ProtectionFlags a, ProtectionFlags b) {
-		return static_cast<ProtectionFlags>(static_cast<std::underlying_type_t<ProtectionFlags>>(a) | static_cast<std::underlying_type_t<ProtectionFlags>>(b));
+		return static_cast<ProtectionFlags>(enum_cast(a) | enum_cast(b));
 	}
 
 	class EXPORT Platform {

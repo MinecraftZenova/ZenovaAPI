@@ -21,12 +21,6 @@ public:
 		mCreateGui = true;
 	}
 
-	Keymapping(const std::string& name, const Keybind& bind) {
-		mKeyName = name;
-		mKeys = bind.mKeys;
-		mCreateGui = bind.mCreateGui;
-	}
-
 	bool isAltKey() {
 		for (auto& key : mKeys) {
 			if (key < 0) {

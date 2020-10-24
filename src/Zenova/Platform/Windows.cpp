@@ -220,6 +220,8 @@ namespace Zenova {
 		}
 
 		void Destroy() {
+			MH_Uninitialize();
+
 			if (CleanupVariables) {
 				FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(CleanupVariables), 0);
 			}
@@ -273,7 +275,7 @@ namespace Zenova {
 	}
 
 	inline bool operator&(ProtectionFlags a, ProtectionFlags b) {
-		return static_cast<std::underlying_type_t<ProtectionFlags>>(a)& static_cast<std::underlying_type_t<ProtectionFlags>>(b);
+		return enum_cast(a) & enum_cast(b);
 	}
 
 	u32 Platform::SetPageProtect(void* addr, size_t len, ProtectionFlags prot) {
@@ -297,10 +299,10 @@ namespace Zenova {
 
 	void Platform::ErrorPrinter() {
 		// Convert GetLastError() to an actual string using the windows api
-		LPSTR message_buffer{};
+		LPSTR message_buffer = nullptr;
 
 		FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-					   NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), message_buffer, 0, NULL);
+					   nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&message_buffer, 0, nullptr);
 		if (!message_buffer) {
 			return;
 		}
