@@ -1,9 +1,12 @@
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING //:)
 
 #include "Zenova/Common.h"
+
 #include <filesystem>
 #include <locale>
 #include <codecvt>
+
+#include "Zenova/Utils/Utils.h"
 
 namespace Zenova {
 	UniversalString::UniversalString() : s(L"") {}

@@ -3,7 +3,6 @@
 #include <filesystem>
 
 #include "Zenova/Log.h"
-#include "Utils/Utils.h"
 
 namespace Zenova {
 	std::string Platform::TypeToString(const PlatformType& type) {
