@@ -47,11 +47,6 @@ endif()
 
 add_compile_definitions(ZENOVA_API)
 
-# need to switch this so that the Zenova all in one build still works if used
-if(EXISTS "${PROJECT_SOURCE_DIR}/Common")
-    add_subdirectory("${PROJECT_SOURCE_DIR}/Common")
-endif()
-
 include_directories("inc")
 include_directories("src")
 
@@ -103,8 +98,7 @@ add_library(ZenovaAPI SHARED
     ${SOURCE_LIST}
 )
 
-target_link_libraries(ZenovaAPI 
-    Common
+target_link_libraries(ZenovaAPI
     ${MinHook}
 )
 
