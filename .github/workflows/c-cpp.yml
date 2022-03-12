@@ -22,7 +22,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: build/
-        key: ${{ runner.os }}-cxx-${{ hashFiles('**/lockfiles') }}
+        key: ${{ runner.os }}-cxx-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
           ${{ runner.os }}-cxx-
 
