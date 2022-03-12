@@ -17,11 +17,7 @@ jobs:
     - name: Git Checkout
       uses: actions/checkout@v2
 
-    - name: Run CMake and Build
-      run: |
-        cmake -B build -S . -A x64
-        cmake --build build --config Release
-
+    # Remove? I'm not sure how to properly utilize this
     - name: Restore CMake Cache
       uses: actions/cache@v2
       with:
@@ -29,6 +25,11 @@ jobs:
         key: ${{ runner.os }}-cxx-${{ hashFiles('**/lockfiles') }}
         restore-keys: |
           ${{ runner.os }}-cxx-
+
+    - name: Run CMake and Build
+      run: |
+        cmake -B build -S . -A x64
+        cmake --build build --config Release
 
     - name: Setup Artifact Uploads
       run: |
@@ -53,6 +54,7 @@ jobs:
     name: Created Tagged Release
     if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: build
+    runs-on: windows-latest
     
     steps:
       # Necessary because github context doesn't contain branch info for tag pushes
