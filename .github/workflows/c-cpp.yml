@@ -6,7 +6,9 @@ on:
     branches: [ master ]
 
 jobs:
+  # Currently only supports x64 due to the state of the project
   build:
+    name: Windows x64 Build
     runs-on: windows-latest
 
     steps:
@@ -15,62 +17,88 @@ jobs:
     - name: Git Checkout
       uses: actions/checkout@v2
 
+    - name: Run CMake and Build
+      run: |
+        cmake -B build -S . -A x64
+        cmake --build build --config Release
+
     - name: Restore CMake Cache
       uses: actions/cache@v2
       with:
         path: build/
-        key: ${{ runner.os }}-cxx-${{ hashFiles('**/CMakeLists.txt') }}
+        key: ${{ runner.os }}-cxx-${{ hashFiles('**/lockfiles') }}
         restore-keys: |
           ${{ runner.os }}-cxx-
 
-    - name: Setup Build Directory
-      run: mkdir build -ea 0
-      
-    - name: Set Git Tag
-      if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    - name: Setup Artifact Uploads
       run: |
-        if("${{ github.ref }}" -match "refs\/tags\/([0-9]+\.[0-9]+\.[0-9]+)")
-        { echo ('ZA_TAG='+$matches.1) >> $env:GITHUB_ENV}
-    
-    - name: Update Version Resource
-      if: env.ZA_TAG != null
-      run: |
-        (((Get-Content -path src/ZenovaAPI.rc -Raw) -replace "0,0,0", ("$env:ZA_TAG" -replace "\.", ",")) -replace "0\.0\.0", "$env:ZA_TAG") | Set-Content -Path src/ZenovaAPI.rc
-        
-    - name: Run CMake
-      run: |
-        cmake -S . -B build
-        cmake --build build --config Release
-
-    - name: File Upload Setup
-      run: |
-        mkdir dev\lib; cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv inc dev
-        mkdir artifact; cp build\ZenovaAPI.dll artifact\ZenovaAPI.dll; cp build\ZenovaAPI.exp artifact\ZenovaAPI.exp; cp build\ZenovaAPI.lib artifact\ZenovaAPI.lib
-
-    - name: Create Development Package
-      uses: papeloto/action-zip@v1
-      with:
-        dest: ZenovaAPI-dev.zip
-        files: dev/
+        New-Item -Type Directory dev\lib; 
+        Copy-Item build\ZenovaAPI.lib dev\lib\; Move-Item inc dev
+        New-Item -Type Directory artifact; 
+        Copy-Item build\* artifact\ -Include "ZenovaAPI.dll", "ZenovaAPI.exp", "ZenovaAPI.lib"
 
     - name: Upload Development Package
       uses: actions/upload-artifact@v2
       with:
         name: ZenovaAPI-dev
-        path: dev
+        path: dev/
 
     - name: Upload x64 Build
       uses: actions/upload-artifact@v2
       with:
         name: ZenovaAPI
-        path: artifact
+        path: artifact/
 
-    - name: Create Tagged Release
-      if: env.ZA_TAG != null
-      uses: "marvinpinto/action-automatic-releases@latest"
-      with:
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        prerelease: false
-        files: |
-          ZenovaAPI-dev.zip
-          build/ZenovaAPI.dll
+  deploy:
+    name: Created Tagged Release
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    
+    steps:
+      # Necessary because github context doesn't contain branch info for tag pushes
+      - name: Get branch names
+        id: branch-names
+        uses: tj-actions/branch-names@v5.1
+
+      - name: Verify Push is on Default Branch
+        if: steps.branch-name.outputs.is_default == 'true'
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('Tag not created on default branch')
+
+      - name: Set Git Tag
+        run: |
+          if("${{ github.ref }}" -match "refs\/tags\/([0-9]+\.[0-9]+\.[0-9]+)")
+          { echo ('ZA_TAG='+$matches.1) >> $env:GITHUB_ENV}
+
+      - name: Grab all Artifacts 
+        uses: actions/download-artifact@v3
+
+      # There has to be a better way to do this
+      - name: Grab Rcedit
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: "https://github.com/electron/rcedit"
+          file: "rcedit-x86.exe"
+
+      - name: Update Version Resource
+        if: env.ZA_TAG != null
+        run: |
+          .\rcedit-x86.exe ZenovaAPI.dll --set-file-version $env:ZA_TAG
+        
+      - name: Create Development Package
+        uses: papeloto/action-zip@v1
+        with:
+          files: inc/ lib/
+          dest: ZenovaAPI-dev.zip
+
+      - name: Create Tagged Release
+        if: env.ZA_TAG != null
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            ZenovaAPI-dev.zip
+            ZenovaAPI.dll
