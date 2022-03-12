@@ -1,9 +1,11 @@
-name: C/C++ CI
+name: ZenovaAPI
 
 on:
   push:
+    branches: [ $default-branch ]
+    tags: [ "*" ]
   pull_request:
-    branches: [ master ]
+    branches: [ $default-branch ]
 
 jobs:
   # Currently only supports x64 due to the state of the project
@@ -51,7 +53,7 @@ jobs:
         path: artifact/
 
   deploy:
-    name: Created Tagged Release
+    name: Create Release
     if: github.event_name == 'push' && github.ref_type == 'tag'
     needs: build
     runs-on: windows-latest
@@ -97,7 +99,7 @@ jobs:
 
       - name: Create Tagged Release
         if: env.ZA_TAG != null
-        uses: "marvinpinto/action-automatic-releases@latest"
+        uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
