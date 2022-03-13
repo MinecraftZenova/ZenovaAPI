@@ -139,7 +139,7 @@ namespace Zenova {
             mKeys.push_back(enum_cast(bind));
         }
 
-        operator bool() const {
+        explicit operator bool() const {
             return mKeys.size();
         }
     };

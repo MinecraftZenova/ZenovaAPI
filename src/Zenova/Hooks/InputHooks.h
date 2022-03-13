@@ -39,18 +39,22 @@ namespace Zenova {
 
 	static void (*_assignDefaultMapping)(RemappingLayout*, std::vector<Keymapping>&&);
 	void assignDefaultMapping(RemappingLayout* self, std::vector<Keymapping>&& mapping) {
+		auto pushBind = [&mapping](const std::string& name, const Keybind& bind) {
+			if (bind) {
+				mapping.emplace_back("key." + name, bind.mKeys, bind.mCreateGui);
+			}
+		};
+
 		switch (mapType) {
 			case RemappingType::Keyboard:
 				for (auto& [name, input] : InputManager::getInputs()) {
-					if (input.mKeyboard)
-						mapping.emplace_back("key." + name, input.mKeyboard);
+					pushBind(name, input.mKeyboard);
 				}
 				break;
 
 			case RemappingType::Gamepad:
 				for (auto& [name, input] : InputManager::getInputs()) {
-					if(input.mGamepad)
-						mapping.emplace_back("key." + name, input.mGamepad);
+					pushBind(name, input.mGamepad);
 				}
 				break;
 

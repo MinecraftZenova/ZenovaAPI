@@ -6,8 +6,6 @@
 #include <memory>
 #include <functional>
 
-#include "Zenova/Minecraft/Inputs.h"
-
 //Keymapping.h
 class Keymapping {
 public:
@@ -15,10 +13,16 @@ public:
 	std::vector<int> mKeys;
 	bool mCreateGui; //this bool is used to create the button in the input manager
 
-	Keymapping(const std::string& name, int key) {
+	Keymapping(const std::string& name, int key, bool createGui = true) {
 		mKeyName = name;
 		mKeys = { key };
-		mCreateGui = true;
+		mCreateGui = createGui;
+	}
+	
+	Keymapping(const std::string& name, const std::vector<int>& keys, bool createGui = true) {
+		mKeyName = name;
+		mKeys = keys;
+		mCreateGui = createGui;
 	}
 
 	bool isAltKey() {
