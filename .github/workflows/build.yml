@@ -20,9 +20,9 @@ jobs:
       uses: actions/cache@v2
       with:
         path: build/
-        key: ${{ runner.os }}-cxx-${{ hashFiles('**/CMakeLists.txt') }}
+        key: ${{ github.ref_name }}-cxx-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
-          ${{ runner.os }}-cxx-
+          ${{ github.ref_name }}-cxx-
 
     - name: Run CMake and Build
       run: |
