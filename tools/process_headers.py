@@ -303,8 +303,7 @@ def generate_init_func_x86(bit):
     for a in symbol_list:
         output_asm("global " + a["mangled_name"])
         output_asm(a["mangled_name"] + ":")
-        output_asm("\tmov rax, [rel " + mangled_name_to_variable(a["mangled_name"]) + "_ptr" + "]")
-        output_asm("\tjmp rax")
+        output_asm("\tjmp qword [rel " + mangled_name_to_variable(a["mangled_name"]) + "_ptr" + "]")
     for vtable in vtable_list:
         vtable_out = process_vtable(vtable)
         print(vtable_out["name"] + "\n")

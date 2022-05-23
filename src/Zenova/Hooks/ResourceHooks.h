@@ -59,12 +59,11 @@ namespace Zenova {
 
 	inline void createResourceHooks() {
 		if (Minecraft::version() == Minecraft::v1_14_60_5)
-			Hook::Create(&VanillaGameModuleClient::initializeResourceStack, &initializeResourceStack, &_initializeResourceStack);
+			Zenova_Hook(VanillaGameModuleClient::initializeResourceStack, &initializeResourceStack, &_initializeResourceStack);
 		else
-			Hook::Create(&VanillaGameModuleClient_1_16::initializeResourceStack, &initializeResourceStack_1_16, &_initializeResourceStack_1_16);
+			Zenova_Hook(VanillaGameModuleClient_1_16::initializeResourceStack, &initializeResourceStack_1_16, &_initializeResourceStack_1_16);
 
-		Hook::Create(&VanillaInPackagePacks::getPacks, &getVanillaPacks, &_getVanillaPacks);
-		Hook::Create(&VanillaGameModuleServer::initializeBehaviorStack, &initializeBehaviorStack, &_initializeBehaviorStack);
-
+		Zenova_Hook(VanillaInPackagePacks::getPacks, &getVanillaPacks, &_getVanillaPacks);
+		Zenova_Hook(VanillaGameModuleServer::initializeBehaviorStack, &initializeBehaviorStack, &_initializeBehaviorStack);
 	}
 }

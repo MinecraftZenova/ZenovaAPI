@@ -105,3 +105,21 @@ namespace Zenova {
 		}
 	};
 }
+
+// defines the cast to choose an overloaded member function
+// ex: Zenova_OCast(void, Test, int)(&Test::overload); chooses void Test::overload(int)
+#define Zenova_OCast(r, c, ...) static_cast<r (c::*)(__VA_ARGS__)>
+
+// ex: Zenova_Hook(Test::func, &func, &_func);
+#define Zenova_Hook(function, hook, trampoline) do { \
+	if (!Zenova::Hook::Create(&function, hook, trampoline)) { \
+		Zenova_Info(#function " hook failed"); \
+	} \
+} while (0)
+
+// ex: Zenova_VHook(Test, vfunc, &func, &_func); hooks Test::Vfunc
+#define Zenova_VHook(classname, function, hook, trampoline, ...) do { \
+	if (!Zenova::Hook::Create(classname##_vtable, (__VA_ARGS__(&classname::function)), hook, trampoline)) { \
+		Zenova_Info(#classname "::" #function " vhook failed"); \
+	} \
+} while (0)

@@ -91,6 +91,7 @@ namespace Zenova {
 			return 0;
 		}
 
+		// todo: remove?
 		class MemoryState {
 			u8* mLocation;
 			std::size_t mSize;
@@ -122,16 +123,13 @@ namespace Zenova {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
-				u8* u8Function = reinterpret_cast<u8*>(function) + 7;
+				u8* u8Function = reinterpret_cast<u8*>(function);
 
-				if(*u8Function == 0xff) {
-					MemoryState state(u8Function, 2);
+				// todo: use capstone or zydis
+				if(*u8Function == 0xff && *(u8Function + 1) == 0x25) {
+					uintptr_t* address = reinterpret_cast<uintptr_t*>(u8Function + (*reinterpret_cast<u32*>(u8Function + 2)) + 6);
 
-					*u8Function = 0xc3;
-					*(u8Function + 1) = 0xcc;
-
-					uintptr_t address = reinterpret_cast<uintptr_t(*)()>(function)();
-					successful = Platform::CreateHook(reinterpret_cast<void*>(address), funcJump, reinterpret_cast<void**>(funcTrampoline));
+					successful = Platform::CreateHook(reinterpret_cast<void*>(*address), funcJump, reinterpret_cast<void**>(funcTrampoline));
 				}
 			}
 
@@ -142,6 +140,11 @@ namespace Zenova {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
+				u8* thunkFunction = reinterpret_cast<u8*>(function);
+				if (*thunkFunction == 0xe9) {
+					function = reinterpret_cast<void*>(thunkFunction + (*reinterpret_cast<u32*>(thunkFunction + 1)) + 5);
+				}
+
 				u8* u8Function = reinterpret_cast<u8*>(function) + 3;
 
 				if(*u8Function == 0xff) {

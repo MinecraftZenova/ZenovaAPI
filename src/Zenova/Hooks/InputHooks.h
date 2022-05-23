@@ -100,15 +100,15 @@ namespace Zenova {
 	void _handleDuplicates(ControlsSettingsScreenController* self, RemappingLayout& a2) {}
 
 	inline void createInputHooks() {
-		Hook::Create(&MinecraftInputHandler::_registerInputHandlers, &_registerInputHandlers, &__registerInputHandlers);
+		Zenova_Hook(MinecraftInputHandler::_registerInputHandlers, &_registerInputHandlers, &__registerInputHandlers);
 
-		Hook::Create(&RemappingLayout::assignDefaultMapping, &assignDefaultMapping, &_assignDefaultMapping);
+		Zenova_Hook(RemappingLayout::assignDefaultMapping, &assignDefaultMapping, &_assignDefaultMapping);
 
-		Hook::Create(&VanillaClientInputMappingFactory::_populateKeyboardDefaults, &_populateKeyboardDefaults, &__populateKeyboardDefaults);
-		Hook::Create(&VanillaClientInputMappingFactory::_populateGamepadDefaults, &_populateGamepadDefaults, &__populateGamepadDefaults);
-		Hook::Create(&VanillaClientInputMappingFactory::_addFullKeyboardGamePlayControls, &_addFullKeyboardGamePlayControls, &__addFullKeyboardGamePlayControls);
-		Hook::Create(&VanillaClientInputMappingFactory::_addInvariantGamePlayGameControllerControls, &_addInvariantGamePlayGameControllerControls, &__addInvariantGamePlayGameControllerControls);
+		Zenova_Hook(VanillaClientInputMappingFactory::_populateKeyboardDefaults, &_populateKeyboardDefaults, &__populateKeyboardDefaults);
+		Zenova_Hook(VanillaClientInputMappingFactory::_populateGamepadDefaults, &_populateGamepadDefaults, &__populateGamepadDefaults);
+		Zenova_Hook(VanillaClientInputMappingFactory::_addFullKeyboardGamePlayControls, &_addFullKeyboardGamePlayControls, &__addFullKeyboardGamePlayControls);
+		Zenova_Hook(VanillaClientInputMappingFactory::_addInvariantGamePlayGameControllerControls, &_addInvariantGamePlayGameControllerControls, &__addInvariantGamePlayGameControllerControls);
 
-		Hook::Create(&ControlsSettingsScreenController::_handleDuplicates, &_handleDuplicates, &__handleDuplicates);
+		Zenova_Hook(ControlsSettingsScreenController::_handleDuplicates, &_handleDuplicates, &__handleDuplicates);
 	}
 }
