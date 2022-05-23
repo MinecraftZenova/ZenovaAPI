@@ -44,7 +44,7 @@ jobs:
 
     - name: File Upload Setup
       run: |
-        mkdir dev\lib; cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv inc dev
+        mkdir dev\lib; cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv tools inc dev
         mkdir artifact; cp build\ZenovaAPI.dll artifact\ZenovaAPI.dll; cp build\ZenovaAPI.exp artifact\ZenovaAPI.exp; cp build\ZenovaAPI.lib artifact\ZenovaAPI.lib
 
     - name: Create Development Package

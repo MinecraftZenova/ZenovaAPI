@@ -104,8 +104,8 @@ target_link_libraries(ZenovaAPI
 
 add_custom_command(TARGET ZenovaAPI
     PRE_BUILD
-    COMMAND py -3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_headers.py -a x64 -p windows -d ${CMAKE_CURRENT_SOURCE_DIR}/src/generated ${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/*.json
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_headers.py
+    COMMAND py -3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py -a x64 -p windows -d ${CMAKE_CURRENT_SOURCE_DIR}/src/generated ${CMAKE_CURRENT_SOURCE_DIR}/maps/windows/x64/*.json
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})

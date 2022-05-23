@@ -8,7 +8,7 @@ from glob import glob
 from pathlib import Path
 #from itanium_demangler import parse as demangle
 
-parser = argparse.ArgumentParser(description='Processes headers')
+parser = argparse.ArgumentParser(description='Processes symbol maps')
 parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'], required=True)
 parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
 parser.add_argument('-d', '--directory', type=Path, help='directory', default=".")
