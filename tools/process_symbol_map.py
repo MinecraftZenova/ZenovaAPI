@@ -400,7 +400,7 @@ try:
     with open(directory + "/initasm.asm") as last_asm_file:
         last_asm_lines = last_asm_file.readlines()
         if len(last_asm_lines) >= 2: # if file has timestamp line
-            last_gen_time = datetime.datetime.strptime(last_asm_file.readlines()[1][2:])
+            last_gen_time = datetime.datetime.strptime(last_asm_file.readlines()[1][2:], "%a %b %d %Y %H:%M:%S UTC")
             for file_path in in_files:
                 for glob_file_path in glob(file_path):
                     if datetime.datetime.fromtimestamp(os.path.getmtime(glob_file_path)) > last_gen_time: # if one of the .json symbol maps is newer than the last generated code
