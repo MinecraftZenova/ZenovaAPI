@@ -15,14 +15,6 @@ jobs:
     - name: Git Checkout
       uses: actions/checkout@v2
 
-    - name: Restore CMake Cache
-      uses: actions/cache@v2
-      with:
-        path: build/
-        key: ${{ runner.os }}-cxx-${{ hashFiles('**/CMakeLists.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-cxx-
-
     - name: Setup Build Directory
       run: mkdir build -ea 0
       

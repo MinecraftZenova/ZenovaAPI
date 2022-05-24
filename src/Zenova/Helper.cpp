@@ -51,7 +51,7 @@ namespace Zenova {
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
 			
-			InitVersionPointers(Minecraft::version());
+			InitVersionPointers();
 
 			createResourceHooks();
 			createInputHooks();

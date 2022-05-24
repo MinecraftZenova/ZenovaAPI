@@ -12,7 +12,8 @@ parser = argparse.ArgumentParser(description='Processes symbol maps')
 parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'], required=True)
 parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
 parser.add_argument('-d', '--directory', type=Path, help='directory', default=".")
-parser.add_argument('-o', '--output', type=bool, help='output', default=False)
+parser.add_argument('-o', '--output', help='log debug output', action='store_true')
+parser.add_argument('-e', '--entry', help='create DllMain entry point', action='store_true')
 parser.add_argument('input', metavar='file', type=str, nargs='+', help='input json symbol maps')
 args = parser.parse_args()
 
@@ -21,20 +22,16 @@ platform = args.platform
 in_files = args.input
 directory = str(args.directory)
 debug_output = args.output
+entry = args.entry
 
 if not os.path.exists(directory):
     os.makedirs(directory)
 
 file_header_name = "initcpp.h"
 
-out_file_cpp = open(directory + "/initcpp.cpp", "w")
-out_file_header = open(directory + "/" + file_header_name, "w")
-out_file_asm = open(directory + "/initasm.asm", "w")
-
-if(debug_output):
-    print("CXX output: " + out_file_cpp.name)
-    print("HXX output: " + out_file_header.name)
-    print("ASM output: " + out_file_asm.name)
+out_file_cpp = None
+out_file_header = None
+out_file_asm = None
 
 version_list = []
 symbol_list = []
@@ -82,7 +79,7 @@ def signature_helper(psig):
                 mask += "x"
                 sig += "\\x" + byte
 
-        sigtype = "SigscanCall" if(byteList[0] == "E8") else "Sigscan"
+        sigtype = "SigscanCall" if(byteList[0] == "E8" or byteList[0] == "E9") else "Sigscan"
         
         return { "sig": sig, "mask": mask, "type": sigtype }
 
@@ -130,25 +127,30 @@ def mangled_name_to_variable(str):
     return str
 
 def generate_init_cpp():
+    #flags
+
+
     #*.hxx
     output_header("")
     output_header("#pragma once")
-    output_header("")
-    output_header("#include <Zenova/Hook.h>")
-    output_header("#include <Zenova/Minecraft.h>")
     if len(symbol_list) > 0 or len(vtable_list) > 0:
         output_header("")
         output_header("extern \"C\" {")
         for a in symbol_list:
-            output_header("\textern void* " + a["name"] + "_ptr;")
+            if a["name"]:
+                output_header("\textern void* " + a["name"] + "_ptr;")
         for a in vtable_list:
-            output_header("\textern void* " + a["name"] + "_vtable;")
+            if a["name"]:
+                output_header("\textern void* " + a["name"] + "_vtable;")
         output_header("}")
     output_header("")
     output_header("void InitBedrockPointers();")
-    output_header("void InitVersionPointers(const Zenova::Version&);")
+    output_header("void InitVersionPointers();")
 
     #*.cxx
+    output_cxx("")
+    output_cxx("#include <Zenova/Hook.h>")
+    output_cxx("#include <Zenova/Minecraft.h>")
     output_cxx("")
     output_cxx("#include \"" + file_header_name + "\"")
     for a in include_list:
@@ -161,53 +163,70 @@ def generate_init_cpp():
     for a in var_list:
         address = a["address"]
         name = a["name"]
-        if address and type(address) == str:
-            output_cxx(name + " = reinterpret_cast<" + name[:name.rfind("*")+1] + ">(SlideAddress(" + address + "))" + ";")
-        else:
-            output_cxx(name + ";")
+        if name:
+            if address and type(address) == str:
+                output_cxx(name + " = reinterpret_cast<" + name[:name.rfind("*")+1] + ">(SlideAddress(" + address + "))" + ";")
+            else:
+                output_cxx(name + ";")
     output_cxx("")
 
     output_cxx("extern \"C\" {")
     for a in symbol_list:
-        output_cxx("\tvoid* " + a["name"] + "_ptr;")
+        if a["name"]:
+            output_cxx("\tvoid* " + a["name"] + "_ptr;")
     for a in vtable_list:
-        output_cxx("\tvoid* " + a["name"] + "_vtable;")
+        if a["name"]:
+            output_cxx("\tvoid* " + a["name"] + "_vtable;")
     output_cxx("}")
     output_cxx("")
 
     output_cxx("void InitBedrockPointers() {")
-    if len(var_list) > 0:
-        for a in var_list:
-            if a["address"] == "":
-                offset = a["name"].rfind("*") + 1
-                output_cxx("\t" + a["name"][offset:].strip() + " = reinterpret_cast<" + a["name"][:offset] + ">(FindVariable(\"" + a["name"] + "\"));")
-
-    if len(symbol_list) > 0:
-        for a in symbol_list:
-            address = a["address"]
-            if(type(address) == str and address != ""):
-                output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(SlideAddress(" + address + "));")
-                
-            signature = a["signature"]
-            if(type(signature) == dict and len(signature) == 3):
-                output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(" + signature["type"] + "(\"" + signature["sig"] + "\", \"" + signature["mask"] + "\"));")
-
-    if len(vtable_list) > 0:
-        for a in vtable_list:
+    for a in var_list:
+        address = a["address"]
+        if type(address) == str and address != "":
             name = a["name"]
+            offset = name.rfind("*") + 1
+            output_cxx("\t" + name[offset:].strip() + " = reinterpret_cast<" + name[:offset] + ">(FindVariable(\"" + name + "\"));")
 
-            if a["address"] != "":
-                output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + a["address"] + "));")
-            if a["overload"] == "always" or (a["overload"] == "null" and a["address"] == ""):
-                output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(FindVtable(\"" + name + "\"));")
+    for a in symbol_list:
+        address = a["address"]
+        if type(address) == str and address != "":
+            output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(SlideAddress(" + address + "));")
+            
+        signature = a["signature"]
+        if type(signature) == dict and len(signature) == 3: #signature_helper
+            output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(" + signature["type"] + "(\"" + signature["sig"] + "\", \"" + signature["mask"] + "\"));")
+
+    for a in vtable_list:
+        name = a["name"]
+        address = a["address"]
+
+        if type(address) == str and address != "":
+            output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address + "));")
+        if a["overload"] == "always" or (a["overload"] == "null" and address == ""):
+            output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(FindVtable(\"" + name + "\"));")
     output_cxx("}")
     output_cxx("")
 
-    output_cxx("void InitVersionPointers(const Zenova::Version& versionId) {")
+    output_cxx("void InitVersionPointers() {")
+    output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
 
     #I want to come back and add support for version based signatures
 
-    cxx_dict_list = [{}, {}]
+    cxx_dict_list = [{}, {}, {}]
+    for vtable in vtable_list:
+        address_list = vtable["address"]
+        if(type(address_list) == list):
+            i = 0
+            for address in address_list:
+                if(address != ""):
+                    cxx_str = "\t\t" + vtable["name"] + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address_list[i] + "));"
+                    if(version_list[i] not in cxx_dict_list[0]):
+                        cxx_dict_list[0][version_list[i]] = [ cxx_str ]
+                    else:
+                        cxx_dict_list[0][version_list[i]].append(cxx_str)
+                i += 1
+
     for sym in symbol_list:
         address_list = sym["address"]
         if(type(address_list) == list):
@@ -215,10 +234,10 @@ def generate_init_cpp():
             for address in address_list:
                 if(address != ""):
                     cxx_str = "\t\t" + sym["name"] + "_ptr = reinterpret_cast<void*>(SlideAddress(" + address_list[i] + "));"
-                    if(version_list[i] not in cxx_dict_list[0]):
-                        cxx_dict_list[0][version_list[i]] = [ cxx_str ]
+                    if(version_list[i] not in cxx_dict_list[1]):
+                        cxx_dict_list[1][version_list[i]] = [ cxx_str ]
                     else:
-                        cxx_dict_list[0][version_list[i]].append(cxx_str)
+                        cxx_dict_list[1][version_list[i]].append(cxx_str)
                 i += 1
 
     for var in var_list:
@@ -229,15 +248,15 @@ def generate_init_cpp():
                 if(address != ""):
                     offset = var["name"].rfind("*") + 1
                     cxx_str = "\t\t" + var["name"][offset:].strip() + " = reinterpret_cast<" + var["name"][:offset] + ">(SlideAddress(" + address_list[i] + "));"
-                    if(version_list[i] not in cxx_dict_list[1]):
-                        cxx_dict_list[1][version_list[i]] = [ cxx_str ]
+                    if(version_list[i] not in cxx_dict_list[2]):
+                        cxx_dict_list[2][version_list[i]] = [ cxx_str ]
                     else:
-                        cxx_dict_list[1][version_list[i]].append(cxx_str)
+                        cxx_dict_list[2][version_list[i]].append(cxx_str)
                 i += 1
 
     prefix = ""
     for version in version_list:
-        output_cxx("\t" + prefix + "if(versionId == Zenova::Minecraft::v" + version.replace(".", "_") + ") {")
+        output_cxx("\t" + prefix + "if(versionId == \"" + version + "\") {")
         for cxx_dict in cxx_dict_list:
             for cxx in cxx_dict.get(version, []):
                 output_cxx(cxx)
@@ -245,8 +264,6 @@ def generate_init_cpp():
         prefix = "else " if(prefix == "") else prefix
 
     output_cxx("}")
-
-
 
 def process_vtable(vtable):
     vtable_out = next((x for x in vtable_output if vtable["name"] == x["name"]), {})
@@ -306,25 +323,41 @@ def generate_init_func_x86(bit):
         output_asm("\tjmp qword [rel " + mangled_name_to_variable(a["mangled_name"]) + "_ptr" + "]")
     for vtable in vtable_list:
         vtable_out = process_vtable(vtable)
-        print(vtable_out["name"] + "\n")
         for a in vtable_out["functions_out"]:
             output_asm("global " + a[0])
             output_asm(a[0] + ":")
             output_asm("\tmov " + reg + ", [rel " + vtable_out["name"] + "_vtable]")
             output_asm("\tjmp [" + reg + "+" + str(a[1] * pointer_size) + "]")
 
+
+
+def generate_init_windows():
+    output_cxx("")
+    output_cxx("BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {")
+    output_cxx("\tif(fdwReason == DLL_PROCESS_ATTACH) {")
+    output_cxx("\t\tInitBedrockPointers();")
+    output_cxx("\t\tInitVersionPointers();")
+    output_cxx("\t}")
+    output_cxx("\treturn TRUE;")
+    output_cxx("}")
+
+
+
 def generate_init_func():
     gen_time = datetime.datetime.utcnow().strftime("%a %b %d %Y %H:%M:%S UTC")
     output_cxx("// This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_cxx("// Generated on " + gen_time)
+    output_cxx("// " + gen_time)
 
     output_header("// This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_header("// Generated on " + gen_time)
+    output_header("// " + gen_time)
 
     generate_init_cpp()
 
+    if platform == "windows" and entry:
+        generate_init_windows()
+
     output_asm("; This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_asm("; Generated on " + gen_time)
+    output_asm("; " + gen_time)
 
     if arch == "x86":
         generate_init_func_x86(32)
@@ -334,17 +367,48 @@ def generate_init_func():
         print(arch + " not supported")
         #generate_init_func_arm()
 
-for file_path in in_files:
-    for glob_file_path in glob(file_path):
-        file_full_path = os.path.abspath(glob_file_path)
-        print("Parsing Symbol Map: " + file_full_path)
-        with open(file_full_path, "r") as f:
-            read_json(f)
-generate_init_func()
-if(debug_output):
-    print(cxx_output)
-    print(hxx_output)
-    print(asm_output)
-out_file_cpp.close()
-out_file_header.close()
-out_file_asm.close()
+def rebuild_symbol_gen():
+    global out_file_cpp, out_file_header, out_file_asm
+    out_file_cpp = open(directory + "/initcpp.cpp", "w")
+    out_file_header = open(directory + "/" + file_header_name, "w")
+    out_file_asm = open(directory + "/initasm.asm", "w")
+
+    if(debug_output):
+        print("cxx output: " + out_file_cpp.name)
+        print("hxx output: " + out_file_header.name)
+        print("asm output: " + out_file_asm.name)
+
+    for file_path in in_files:
+        for glob_file_path in glob(file_path):
+            file_full_path = os.path.abspath(glob_file_path)
+            print("Parsing Symbol Map: " + file_full_path)
+            with open(file_full_path, "r") as f:
+                read_json(f)
+
+    generate_init_func()
+    
+    if(debug_output):
+        print(cxx_output)
+        print(hxx_output)
+        print(asm_output)
+
+    out_file_cpp.close()
+    out_file_header.close()
+    out_file_asm.close()
+
+try:
+    with open(directory + "/initasm.asm") as last_asm_file:
+        last_asm_lines = last_asm_file.readlines()
+        if len(last_asm_lines) >= 2: # if file has timestamp line
+            last_gen_time = datetime.datetime.strptime(last_asm_file.readlines()[1][2:])
+            for file_path in in_files:
+                for glob_file_path in glob(file_path):
+                    if datetime.datetime.fromtimestamp(os.path.getmtime(glob_file_path)) > last_gen_time: # if one of the .json symbol maps is newer than the last generated code
+                        rebuild_symbol_gen()
+                        break
+            if datetime.datetime.fromtimestamp(os.path.getmtime(os.path.abspath(__file__))) > last_gen_time: # if this script is newer than the last generated code
+                rebuild_symbol_gen()
+        else:
+            rebuild_symbol_gen()
+except FileNotFoundError: # if file doesn't exist
+    rebuild_symbol_gen()
