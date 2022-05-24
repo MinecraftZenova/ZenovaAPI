@@ -367,6 +367,8 @@ def generate_init_func():
         print(arch + " not supported")
         #generate_init_func_arm()
 
+
+
 def rebuild_symbol_gen():
     global out_file_cpp, out_file_header, out_file_asm
     out_file_cpp = open(directory + "/initcpp.cpp", "w")
@@ -396,19 +398,38 @@ def rebuild_symbol_gen():
     out_file_header.close()
     out_file_asm.close()
 
-try:
-    with open(directory + "/initasm.asm") as last_asm_file:
-        last_asm_lines = last_asm_file.readlines()
-        if len(last_asm_lines) >= 2: # if file has timestamp line
-            last_gen_time = datetime.datetime.strptime(last_asm_file.readlines()[1][2:], "%a %b %d %Y %H:%M:%S UTC")
-            for file_path in in_files:
-                for glob_file_path in glob(file_path):
-                    if datetime.datetime.fromtimestamp(os.path.getmtime(glob_file_path)) > last_gen_time: # if one of the .json symbol maps is newer than the last generated code
-                        rebuild_symbol_gen()
-                        break
-            if datetime.datetime.fromtimestamp(os.path.getmtime(os.path.abspath(__file__))) > last_gen_time: # if this script is newer than the last generated code
-                rebuild_symbol_gen()
-        else:
-            rebuild_symbol_gen()
-except FileNotFoundError: # if file doesn't exist
+
+
+def should_rebuild_symbols():
+    global directory, in_files
+    
+    last_asm_lines = []
+
+    try:
+        with open(directory + "/initasm.asm") as last_asm_file:
+            last_asm_lines = last_asm_file.readlines()
+    except FileNotFoundError: # if file doesn't exist
+        return True
+    
+    if len(last_asm_lines) < 2: # if file doesn't have timestamp line
+        return True
+
+    try:
+        last_gen_time = datetime.datetime.strptime(last_asm_lines[1][2:].strip(), "%a %b %d %Y %H:%M:%S UTC")
+    except ValueError as e: # if time format is not current
+        return True
+    
+    for file_path in in_files:
+        for glob_file_path in glob(file_path):
+            if datetime.datetime.utcfromtimestamp(os.path.getmtime(glob_file_path)) > last_gen_time: # if one of the .json symbol maps is newer than the last generated code
+                return True
+    
+    if datetime.datetime.utcfromtimestamp(os.path.getmtime(os.path.abspath(__file__))) > last_gen_time: # if this script is newer than the last generated code
+        return True
+    
+    return False
+
+
+
+if should_rebuild_symbols():
     rebuild_symbol_gen()
