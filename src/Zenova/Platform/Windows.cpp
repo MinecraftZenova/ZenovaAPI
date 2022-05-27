@@ -347,6 +347,11 @@ namespace Zenova {
 		return base;
 	}
 
+	uintptr_t Platform::GetMinecraftSize() {
+		static uintptr_t size = GetModuleSize("Minecraft.Windows.exe");
+		return size;
+	}
+
 	void Platform::OutputDebugMessage(const std::string& message) {
 		OutputDebugStringA(message.c_str());
 	}

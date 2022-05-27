@@ -65,7 +65,7 @@ namespace Zenova {
 		}
 
 		uintptr_t Sigscan(const char* sig, const char* mask) {
-			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
+			auto size = Platform::GetMinecraftSize();
 
 			for (size_t i = 0; i < size; ++i) {
 				uintptr_t iaddr = SlideAddress(i);
@@ -78,7 +78,7 @@ namespace Zenova {
 		}
 
 		uintptr_t SigscanCall(const char* sig, const char* mask) {
-			auto size = Platform::GetModuleSize("Minecraft.Windows.exe");
+			auto size = Platform::GetMinecraftSize();
 
 			for (size_t i = 0; i < size; ++i) {
 				uintptr_t iaddr = SlideAddress(i);
