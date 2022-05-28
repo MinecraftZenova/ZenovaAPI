@@ -203,12 +203,13 @@ def generate_init_cpp():
     output_cxx("")
 
     # use lambdas to initialize the global variables (allows for "const" initialization)
-    var_arr_str = "std::array<uintptr_t, " + str(len(var_list)) + ">"
-    output_cxx("namespace {")
-    output_cxx("static " + var_arr_str + " var_addrs = []() -> " + var_arr_str + " {")
-    output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
-    output_cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
-    output_cxx("")
+    if not var_list:
+        var_arr_str = "std::array<uintptr_t, " + str(len(var_list)) + ">"
+        output_cxx("namespace {")
+        output_cxx("static " + var_arr_str + " var_addrs = []() -> " + var_arr_str + " {")
+        output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
+        output_cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
+        output_cxx("")
 
     # reimplement FindVariable when it's a more stable concept
     for var in var_dict[""]:
@@ -237,7 +238,7 @@ def generate_init_cpp():
     i = 0
     for name in var_list:
         if name:
-            output_cxx(name + " = reinterpret_cast<" + name[:name.rfind("&")+1] + ">(var_addrs[" + str(i) + "])" + ";")
+            output_cxx(name + " = *reinterpret_cast<" + name[:name.rfind("&")] + "*>(var_addrs[" + str(i) + "])" + ";")
         i += 1
     output_cxx("")
 

@@ -12,7 +12,7 @@ namespace Zenova {
     ModInfo::ModInfo(const std::string& modName) {
         logger.info("Loading {}", modName);
 
-        std::string folder = dataFolder + "\\mods\\" + modName + "\\";
+        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
         json::Document modDocument = JsonHelper::OpenFile(folder + "modinfo.json");
         if(!modDocument.IsNull()) {
             mNameId = JsonHelper::FindString(modDocument, "nameId");

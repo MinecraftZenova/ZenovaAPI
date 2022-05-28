@@ -4,8 +4,6 @@
 #include <functional>
 #include <vector>
 
-#include <Zenova/Common.h>
-
 #include "ProfileInfo.h"
 #include "ModInfo.h"
 
@@ -21,6 +19,8 @@ namespace Zenova {
         std::chrono::time_point<clock> tickTimer = clock::now();
 
 	public:
+        std::string dataFolder;
+
         Manager();
         void init();
         void update();

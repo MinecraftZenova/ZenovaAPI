@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "Helper.h"
 
 #include <iostream> //std::cout (Zenova::MessageRedirection)
@@ -24,27 +23,12 @@
 
 namespace Zenova {
 	u32 __stdcall start(void* platformArgs) {
-		dataFolder = []() -> std::string {
-			std::string folder[] = {
-				std::getenv("ZENOVA_DATA"),
-				::Util::GetAppDirectoryA() + "\\data", //this seems to return the minecraft exe directory :/
-			};
-
-			for (auto& str : folder) {
-				if (!str.empty() && Util::IsFile(str + "\\ZenovaAPI.dll")) {
-					return str;
-				}
-			}
-
-			return "";
-		}();
-
-		bool run = (PlatformImpl::Init(platformArgs) && !dataFolder.empty());
+		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if(run) {
 			MessageRedirection console;
 
 			logger.info("Zenova Started");
-			logger.info("ZenovaData Location: {}", dataFolder);
+			logger.info("ZenovaData Location: {}", manager.dataFolder);
 			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 
 			manager.init();
