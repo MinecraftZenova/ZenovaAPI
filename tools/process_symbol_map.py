@@ -38,6 +38,7 @@ symbol_list = []
 vtable_list = []
 vdtor_list = []
 var_list = []
+var_dict = {"": []}
 include_list = []
 vtable_output = []
 cxx_output = ""
@@ -90,8 +91,9 @@ def read_json(file):
     reader = json.load(file)
     for key in reader:
         if key == "version":
-            for obj in reader[key]:
-                version_list.append(obj)
+            for ver in reader[key]:
+                version_list.append(ver)
+                var_dict[ver] = []
 
         elif key == "vtable":
             for obj in reader[key]:
@@ -127,11 +129,31 @@ def read_json(file):
                     "overload": obj.get("overload", "null")
                 })
         elif key == "variables":
-            for variable_keys in reader[key].keys():
-                var_list.append({
-                    "name": variable_keys, 
-                    "address": reader[key][variable_keys]
-                })
+            var_count = 0
+            for var_name in reader[key].keys():
+                var_list.append(var_name)
+                addr = reader[key][var_name]
+                if type(addr) is str:
+                    var_dict[""].append({
+                        "offset": var_count,
+                        "address": addr
+                    })
+                elif type(addr) is list:
+                    i = 0
+                    # check to see if ver == "" (needs to be disallowed)
+                    for ver in version_list:
+                        var_dict[ver].append({
+                            "offset": var_count,
+                            "address": addr[i]
+                        })
+                        i += 1
+                elif type(addr) is dict:
+                    for ver in addr:
+                        var_dict[ver] = var_dict.get(key, []) + [{
+                            "offset": var_count,
+                            "address": addr[ver]
+                        }]
+                var_count += 1
 
         elif key == "includes":
             for strs in reader[key]:
@@ -168,25 +190,55 @@ def generate_init_cpp():
 
     #*.cxx
     output_cxx("")
+    output_cxx("#include <array>")
     output_cxx("#include <Zenova/Hook.h>")
     output_cxx("#include <Zenova/Minecraft.h>")
     output_cxx("")
     output_cxx("#include \"" + file_header_name + "\"")
-    for a in include_list:
-        output_cxx(a)
+    for include in include_list:
+        output_cxx("#include \"" + include + "\"")
     output_cxx("")
 
     output_cxx("using namespace Zenova::Hook;")
     output_cxx("")
 
-    for a in var_list:
-        address = a["address"]
-        name = a["name"]
+    # use lambdas to initialize the global variables (allows for "const" initialization)
+    var_arr_str = "std::array<uintptr_t, " + str(len(var_list)) + ">"
+    output_cxx("namespace {")
+    output_cxx("static " + var_arr_str + " var_addrs = []() -> " + var_arr_str + " {")
+    output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
+    output_cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
+    output_cxx("")
+
+    # reimplement FindVariable when it's a more stable concept
+    for var in var_dict[""]:
+        offset, addr = var.values()
+        output_cxx("\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
+
+    output_cxx("")
+    prefix = ""
+    for ver in var_dict:
+        if ver != "":
+            output_cxx("\t" + prefix + "if (versionId == \"" + ver + "\") {")
+            for var in var_dict[ver]:
+                offset, addr = var.values()
+                output_cxx("\t\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
+            output_cxx("\t}")
+            prefix = "else "
+
+    if prefix == "else ":
+        output_cxx("")
+
+    output_cxx("\treturn vars;")
+    output_cxx("}();")
+    output_cxx("}")
+    output_cxx("")
+
+    i = 0
+    for name in var_list:
         if name:
-            if address and type(address) == str:
-                output_cxx(name + " = reinterpret_cast<" + name[:name.rfind("*")+1] + ">(SlideAddress(" + address + "))" + ";")
-            else:
-                output_cxx(name + ";")
+            output_cxx(name + " = reinterpret_cast<" + name[:name.rfind("&")+1] + ">(var_addrs[" + str(i) + "])" + ";")
+        i += 1
     output_cxx("")
 
     for a in symbol_list:
@@ -201,13 +253,6 @@ def generate_init_cpp():
     output_cxx("")
 
     output_cxx("void InitBedrockPointers() {")
-    for a in var_list:
-        address = a["address"]
-        if type(address) == str and address == "":
-            name = a["name"]
-            offset = name.rfind("*") + 1
-            output_cxx("\t" + name[offset:].strip() + " = reinterpret_cast<" + name[:offset] + ">(FindVariable(\"" + name + "\"));")
-
     for a in symbol_list:
         address = a["address"]
         if type(address) == str and address != "":
@@ -236,7 +281,7 @@ def generate_init_cpp():
 
     #I want to come back and add support for version based signatures
 
-    cxx_dict_list = [{}, {}, {}]
+    cxx_dict_list = [{}, {}]
     for vtable in vtable_list:
         address_list = vtable["address"]
         if(type(address_list) == list):
@@ -263,28 +308,15 @@ def generate_init_cpp():
                         cxx_dict_list[1][version_list[i]].append(cxx_str)
                 i += 1
 
-    for var in var_list:
-        address_list = var["address"]
-        if(type(address_list) == list):
-            i = 0
-            for address in address_list:
-                if(address != ""):
-                    offset = var["name"].rfind("*") + 1
-                    cxx_str = "\t\t" + var["name"][offset:].strip() + " = reinterpret_cast<" + var["name"][:offset] + ">(SlideAddress(" + address_list[i] + "));"
-                    if(version_list[i] not in cxx_dict_list[2]):
-                        cxx_dict_list[2][version_list[i]] = [ cxx_str ]
-                    else:
-                        cxx_dict_list[2][version_list[i]].append(cxx_str)
-                i += 1
-
-    prefix = ""
-    for version in version_list:
-        output_cxx("\t" + prefix + "if(versionId == \"" + version + "\") {")
-        for cxx_dict in cxx_dict_list:
-            for cxx in cxx_dict.get(version, []):
-                output_cxx(cxx)
-        output_cxx("\t}")
-        prefix = "else " if(prefix == "") else prefix
+    if cxx_dict_list[0] or cxx_dict_list[1]:
+        prefix = ""
+        for version in version_list:
+            output_cxx("\t" + prefix + "if(versionId == \"" + version + "\") {")
+            for cxx_dict in cxx_dict_list:
+                for cxx in cxx_dict.get(version, []):
+                    output_cxx(cxx)
+            output_cxx("\t}")
+            prefix = "else "
 
     output_cxx("}")
 
@@ -462,3 +494,5 @@ def should_rebuild_symbols():
 
 if should_rebuild_symbols():
     rebuild_symbol_gen()
+else:
+    print("Skipping symbol rebuild")
