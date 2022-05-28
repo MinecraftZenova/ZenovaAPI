@@ -22,7 +22,7 @@
 #include "generated/initcpp.h"
 
 namespace Zenova {
-	u32 __stdcall start(void* platformArgs) {
+	u32 start(void* platformArgs) {
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if(run) {
 			MessageRedirection console;

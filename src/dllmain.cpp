@@ -8,10 +8,14 @@
 #include "Zenova/Helper.h"
 #include "generated/initcpp.h"
 
+DWORD WINAPI call_start(LPVOID args) {
+	return Zenova::start(args);
+}
+
 BOOL APIENTRY DllMain(HMODULE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 	if ((fdwReason == DLL_PROCESS_ATTACH) && Zenova::Platform::GetMinecraftBaseAddress()) { //avoid being attached to anything besides Minecraft Win10
 		InitBedrockPointers(); 
-		HANDLE tHandle = CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Zenova::start), reinterpret_cast<void*>(hinstDLL), 0, nullptr);
+		HANDLE tHandle = CreateThread(nullptr, 0, call_start, reinterpret_cast<void*>(hinstDLL), 0, nullptr);
 		if(!tHandle) return false;
 		CloseHandle(tHandle);
 	}
