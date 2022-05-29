@@ -29,11 +29,12 @@ namespace Zenova {
 
 			logger.info("Zenova Started");
 			logger.info("ZenovaData Location: {}", manager.dataFolder);
-			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 
 			manager.init();
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
+			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
+			logger.info("Minecraft's Folder: {}", storage.minecraft_path);
 			
 			InitVersionPointers();
 
@@ -41,8 +42,6 @@ namespace Zenova {
 			createInputHooks();
 
 			manager.load(manager.getLaunchedProfile());
-
-			logger.info("Minecraft folder: {}", storage.minecraft_path);
 			
 			while(run) {
 				manager.update();

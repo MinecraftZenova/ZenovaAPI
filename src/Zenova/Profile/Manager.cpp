@@ -1,5 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS // std::getenv
-
 #include "Manager.h"
 
 #include "Zenova/Log.h"
@@ -11,20 +9,7 @@
 namespace Zenova {
     // this needs to run before initcpp{var_addrs}, it currently does
     Manager::Manager() {
-        dataFolder = []() -> std::string {
-            std::string folder[] = {
-                std::getenv("ZENOVA_DATA"),
-                ::Util::GetAppDirectoryA() + "\\data", // this seems to return the minecraft exe directory :/
-            };
-
-            for (auto& str : folder) {
-                if (!str.empty() && Util::IsFile(str + "\\ZenovaAPI.dll")) {
-                    return str;
-                }
-            }
-
-            return "";
-        }();
+        dataFolder = Platform::GetZenovaFolder();
 
         launched = getLaunchedProfile();
     }

@@ -27,27 +27,27 @@ namespace Util {
 	}
 	
 	bool IsDirectory(const std::string& folder) {
-		try {
-			auto status = std::filesystem::status(folder);
-			return std::filesystem::is_directory(status);
-		}
-		catch (const std::exception& e) {
-			Zenova_Error(e.what());
+		std::error_code errc;
+		auto status = std::filesystem::status(folder, errc);
+
+		if (errc) {
+			Zenova_Error(errc.message());
+			return false;
 		}
 
-		return false;
+		return std::filesystem::is_directory(status);
 	}
 
 	bool IsFile(const std::string& file) {
-		try {
-			auto status = std::filesystem::status(file);
-			return std::filesystem::is_regular_file(status);
+		std::error_code errc;
+		auto status = std::filesystem::status(file, errc);
+		
+		if (errc) {
+			Zenova_Error(errc.message());
+			return false;
 		}
-		catch(const std::exception& e) {
-			Zenova_Error(e.what());
-		}
-
-		return false;
+		
+		return std::filesystem::is_regular_file(status);
 	}
 
 	std::wstring GetAppDirectoryW() {

@@ -54,5 +54,7 @@ namespace Zenova {
 		static void OutputDebugMessage(const std::string& message); //Visual Studio, LogCat, something else?
 		static void OutputDebugMessage(const std::wstring& message);
 		static void DebugPause();
+
+		static std::string GetZenovaFolder();
 	};
 }

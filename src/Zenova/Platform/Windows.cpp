@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS // std::getenv
+
 #include "PlatformImpl.h"
 #include "Zenova/Platform.h"
 
@@ -10,14 +12,16 @@
 #include <Shlobj.h>
 #include <comdef.h>
 
-#include <algorithm>
-#include <stdexcept>
-#include <iostream>
 #include <array>
+#include <algorithm>
+#include <filesystem>
+#include <iostream>
+#include <stdexcept>
 #include <tuple>
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
+#include "Zenova/Utils/Utils.h"
 
 #include "MinHook.h"
 
@@ -168,27 +172,24 @@ HANDLE __stdcall hfnRemoveDirectoryW(LPCWSTR lpFileName) {
 
 namespace Zenova {
 	StorageResolver::StorageResolver() {
-		//will have to change this later to meet 1607 expectations of really long filepaths
+		// todo: have to change this later to meet 1607 expectations of really long filepaths
 		std::array<wchar_t, 1000> szPathW;
-		HRESULT code = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, szPathW.data());
+		HRESULT code = SHGetFolderPathW(NULL, CSIDL_LOCAL_APPDATA, NULL, SHGFP_TYPE_CURRENT, szPathW.data());
 		if (SUCCEEDED(code)) {
 			// Get the path to the textures folder
 			std::wstring_view szPathView(szPathW.data());
 			std::wstring appData(szPathView.substr(0, szPathView.rfind(L"AC")));
 			appData += L"LocalState/games/com.mojang/";
 
-			//Change all the trailing backslashes into forward slash
-			std::wstring_view replaced = L"\\";
-			for (size_t start = 0, pos = 0, end = appData.find(L"LocalState"); start != end; start = pos + replaced.length()) {
-				pos = appData.find(replaced, start);
-				appData.replace(pos, replaced.length(), L"/");
+			if (std::filesystem::is_symlink(appData)) {
+				appData = std::filesystem::read_symlink(appData).wstring();
+			}
+			else {
+				std::wstring_view replaced = L"microsoft.minecraftuwp";
+				appData.replace(appData.find(replaced), replaced.length(), L"Microsoft.MinecraftUWP");
 			}
 
-			//SHGetFolderPathW doesn't properly captialize this, use lowercase in the future?
-			replaced = L"microsoft.minecraftuwp";
-			appData.replace(appData.find(replaced), replaced.length(), L"Microsoft.MinecraftUWP");
-
-			minecraft_path = appData;
+			minecraft_path = std::filesystem::absolute(appData).wstring();
 		}
 		else {
 			_com_error err(code);
@@ -364,5 +365,35 @@ namespace Zenova {
 		if (IsDebuggerPresent()) {
 			DebugBreak();
 		}
+	}
+
+	// should this be accessible through Platform?
+	// todo: make this safe and without MAX_PATH?
+	std::string GetModulePath(const char* moduleName) {
+		char szPath[MAX_PATH];
+		GetModuleFileNameA(GetModuleHandleA(moduleName), szPath, MAX_PATH);
+		return std::filesystem::path(szPath).remove_filename().string();
+	}
+
+	std::string Platform::GetZenovaFolder() {
+		static std::string folder;
+		
+		if (folder.empty()) {
+			std::string paths[] = {
+				// standard install
+				std::getenv("ZENOVA_DATA"),
+				// standalone install
+				GetModulePath("ZenovaAPI.dll") + "\\data",
+			};
+
+			for (auto& pathstr : paths) {
+				if (!pathstr.empty() && Util::IsFile(pathstr + "\\ZenovaAPI.dll")) {
+					folder = pathstr;
+					break;
+				}
+			}
+		}
+
+		return folder;
 	}
 }
