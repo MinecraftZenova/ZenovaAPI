@@ -7,5 +7,4 @@
 namespace Zenova {
 	inline Manager manager;
 	inline Log logger("Zenova");
-	inline StorageResolver storage;
 }

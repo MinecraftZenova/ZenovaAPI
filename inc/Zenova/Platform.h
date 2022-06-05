@@ -50,6 +50,7 @@ namespace Zenova {
 
 		static uintptr_t GetMinecraftBaseAddress();
 		static uintptr_t GetMinecraftSize();
+		static std::wstring GetMinecraftFolder();
 
 		static void OutputDebugMessage(const std::string& message); //Visual Studio, LogCat, something else?
 		static void OutputDebugMessage(const std::wstring& message);

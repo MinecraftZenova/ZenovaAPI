@@ -7,7 +7,8 @@
 #include "Zenova/Utils/Utils.h"
 
 namespace Zenova {
-    // this needs to run before initcpp{var_addrs}, it currently does
+    // this currently runs (and has to) before initcpp{var_addrs}
+    // todo: make launched const and ensure dataFolder is valid before getLaunchedProfile() 
     Manager::Manager() {
         dataFolder = Platform::GetZenovaFolder();
 
@@ -18,7 +19,7 @@ namespace Zenova {
         refreshList();
     }
     
-    //doesn't unload current profile
+    // doesn't unload current profile
     void Manager::refreshList() {
         profiles.clear();
 
@@ -38,10 +39,8 @@ namespace Zenova {
         if(profileIter != profiles.end()) {
             return *profileIter;
         }
-        else {
-            logger.error("{} does not exist in profile list with version: {}", name, launched.versionId);
-        }
 
+        logger.error("{} does not exist in profile list with version: {}", name, launched.versionId);
         return ProfileInfo();
     }
 
@@ -50,7 +49,7 @@ namespace Zenova {
             modinfo.mMod->Update();
         }
 
-        //I should probably hook into minecraft's global tick function
+        // todo: I should probably hook into minecraft's global tick function
         namespace chrono = std::chrono;
         using tick = chrono::duration<int, std::ratio<1, 20>>;
 
@@ -67,8 +66,6 @@ namespace Zenova {
         if (profile) {
             logger.info("Loading {} profile", profile.name);
             current = profile;
-
-            storage.setPath(profile.storagePath);
 
             mods.reserve(profile.modNames.size());
             for (auto& modName : profile.modNames) {

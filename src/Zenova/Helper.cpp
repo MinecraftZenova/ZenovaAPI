@@ -24,7 +24,7 @@
 namespace Zenova {
 	u32 start(void* platformArgs) {
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
-		if(run) {
+		if (run) {
 			MessageRedirection console;
 
 			logger.info("Zenova Started");
@@ -34,7 +34,7 @@ namespace Zenova {
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
 			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
-			logger.info("Minecraft's Folder: {}", storage.minecraft_path);
+			logger.info("Minecraft's Folder: {}", Platform::GetMinecraftFolder());
 			
 			InitVersionPointers();
 
