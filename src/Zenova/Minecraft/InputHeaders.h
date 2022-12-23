@@ -156,7 +156,7 @@ public:
 }; 
 
 //MinecraftInputHandler.h
-class IClientInstance {};
+class IClientInstance;
 
 class InputHandler {
 public:

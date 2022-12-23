@@ -197,14 +197,21 @@ public:
 	std::vector<IInPackagePacks::MetaData> getPacks(PackType) const; //virtual but I'm not dealing with that rn
 };
 
+// seems to be a renamed GameRules
+class Experiments;
+
+// todo: deal with this problem in the future
 class VanillaGameModuleClient {
 public:
 	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&);
-};
 
-class VanillaGameModuleClient_1_16 {
-public:
-	void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
+	struct v1_16 {
+		void initializeResourceStack(ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
+	};
+
+	struct v1_16_100 {
+		void initializeResourceStack(const Experiments*, ResourcePackRepository&, ResourcePackStack&, const BaseGameVersion&, GameModuleClient::ResourceLoadingPhase);
+	};
 };
 
 class VanillaGameModuleServer {

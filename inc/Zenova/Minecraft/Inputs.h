@@ -108,8 +108,10 @@ enum class InputType {
     Xbox
 };
 
+class IClientInstance;
+
 namespace Zenova {
-    using ButtonCallback = std::function<void(bool)>;
+    using ButtonCallback = std::function<void(bool, IClientInstance&)>;
 
     class Keybind {
     public:
@@ -192,6 +194,7 @@ namespace Zenova {
     class EXPORT InputManager {
     public:
         static Input& addInput(const std::string& name, ButtonCallback callback);
+        static Input& addInput(const std::string& name, std::function<void(bool)> callback);
 
         static const std::vector<std::pair<std::string, Input>>& getInputs();
     };      

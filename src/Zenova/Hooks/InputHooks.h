@@ -84,14 +84,14 @@ namespace Zenova {
 
 		for (auto& [name, input] : InputManager::getInputs()) {
 			self->mInput->registerButtonDownHandler("button." + name, 
-													[callback = input.mCallback](FocusImpact, IClientInstance&) {
+													[callback = input.mCallback](FocusImpact, IClientInstance& client) {
 														if (callback) 
-															callback(true);
+															callback(true, client);
 													}, false);
 			self->mInput->registerButtonUpHandler("button." + name,
-												  [callback = input.mCallback](FocusImpact, IClientInstance&) {
+												  [callback = input.mCallback](FocusImpact, IClientInstance& client) {
 													  if (callback) 
-														  callback(false);
+														  callback(false, client);
 												  }, false);
 		}
 	}

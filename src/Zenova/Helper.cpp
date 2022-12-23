@@ -23,6 +23,8 @@
 
 namespace Zenova {
 	u32 start(void* platformArgs) {
+		Platform::DebugPause();
+
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if (run) {
 			MessageRedirection console;
@@ -36,7 +38,7 @@ namespace Zenova {
 			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 			logger.info("Minecraft's Folder: {}", Platform::GetMinecraftFolder());
 			
-			InitVersionPointers();
+			InitBedrockPointers();
 
 			createResourceHooks();
 			createInputHooks();

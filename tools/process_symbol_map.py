@@ -8,467 +8,454 @@ from glob import glob
 from pathlib import Path
 #from itanium_demangler import parse as demangle
 
-parser = argparse.ArgumentParser(description='Processes symbol maps')
-parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'], required=True)
-parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
-parser.add_argument('-d', '--directory', type=Path, help='directory', default=".")
-parser.add_argument('-o', '--output', help='log debug output', action='store_true')
-parser.add_argument('-e', '--entry', help='create DllMain entry point', action='store_true')
-parser.add_argument('input', metavar='file', type=str, nargs='+', help='input json symbol maps')
-args = parser.parse_args()
-
-arch = args.arch
-platform = args.platform
-in_files = args.input
-directory = str(args.directory)
-debug_output = args.output
-entry = args.entry
-
-if not os.path.exists(directory):
-    os.makedirs(directory)
-
 file_header_name = "initcpp.h"
 
-out_file_cpp = None
-out_file_header = None
-out_file_asm = None
+class Args:
+    def __init__(self):
+        parser = argparse.ArgumentParser(description='Processes symbol maps')
+        parser.add_argument('-a', '--arch', type=str, help='arch', choices=['x86', 'x64'], required=True)
+        parser.add_argument('-p', '--platform', type=str, help='platform', choices=['windows'], required=True)
+        parser.add_argument('-r', '--rebuild', help='Force regenerating of files', action='store_true')
+        parser.add_argument('-d', '--directory', type=Path, help='directory', default=".")
+        parser.add_argument('-o', '--output', help='log debug output', action='store_true')
+        parser.add_argument('-e', '--entry', help='create DllMain entry point', action='store_true')
+        parser.add_argument('input', metavar='file', type=str, nargs='+', help='input json symbol maps')
+        args = parser.parse_args()
 
-version_list = []
-symbol_list = []
-vtable_list = []
-vdtor_list = []
-var_list = []
-var_dict = {"": []}
-include_list = []
-vtable_output = []
-cxx_output = ""
-hxx_output = ""
-asm_output = ""
+        self.arch = args.arch
+        self.platform = args.platform
+        self.in_files = args.input
+        self.rebuild = args.rebuild
+        self.directory = str(args.directory)
+        self.debug_output = args.output
+        self.entry = args.entry
 
-def output_cxx(text):
-    text += "\n"
-    global cxx_output
-    cxx_output += "CXX: " + text
-    if out_file_cpp is not None:
-        out_file_cpp.write(text)
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
 
-def output_header(text):
-    text += "\n"
-    global hxx_output
-    hxx_output += "HXX: " + text
-    if out_file_header is not None:
-        out_file_header.write(text)
+class Output:
+    out_file_cpp = None
+    out_file_header = None
+    out_file_asm = None
 
-def output_asm(text):
-    text += "\n"
-    global asm_output
-    asm_output += "ASM: " + text
-    if out_file_asm is not None:
-        out_file_asm.write(text)
+    cxx_output = ""
+    hxx_output = ""
+    asm_output = ""
 
-def signature_helper(psig):
-    if(psig != ""):
-        sig = ""
-        mask = ""
+    def __init__(self, args: Args):
+        self.out_file_cpp = open(args.directory + "/initcpp.cpp", "w")
+        self.out_file_header = open(args.directory + "/" + file_header_name, "w")
+        self.out_file_asm = open(args.directory + "/initasm.asm", "w")
 
-        byteList = psig.split(" ")
+        self.debug = args.debug_output
+        if(self.debug):
+            print("cxx output: " + self.out_file_cpp.name)
+            print("hxx output: " + self.out_file_header.name)
+            print("asm output: " + self.out_file_asm.name)
 
-        for byte in byteList:
-            if(byte == "?"):
-                mask += "?"
-                sig += "\\x00"
-            else:
-                mask += "x"
-                sig += "\\x" + byte
+    def cleanup(self):
+        self.out_file_cpp.close()
+        self.out_file_header.close()
+        self.out_file_asm.close()
 
-        sigtype = "SigscanCall" if(byteList[0] == "E8" or byteList[0] == "E9") else "Sigscan"
+    def cxx(self, text):
+        text += "\n"
+        self.cxx_output += "CXX: " + text
+        if self.out_file_cpp is not None:
+            self.out_file_cpp.write(text)
+
+    def header(self, text):
+        text += "\n"
+        self.hxx_output += "HXX: " + text
+        if self.out_file_header is not None:
+            self.out_file_header.write(text)
+
+    def asm(self, text):
+        text += "\n"
+        self.asm_output += "ASM: " + text
+        if self.out_file_asm is not None:
+            self.out_file_asm.write(text)
+
+    def dump(self):
+        if(self.debug):
+            print(self.cxx_output)
+            print(self.hxx_output)
+            print(self.asm_output)
+
+class Map:
+    # 0 = var_name, 1 = mangled_name (sorry)
+    symbol_list = []
+    symbol_dict = {}
+    vtable_list = []
+    processed_vtables = []
+    vdtor_list = []
+    var_list = []
+    var_dict = {"": []}
+    include_list = []
+
+    def parse(self, file):
+        reader = json.load(file)
+        for key in reader:
+            self.__parse(key, reader[key])
+
+    def __addr_helper(addr: str) -> str:
+        if addr == "" or len(addr) < 2:
+            # todo: throw an error of sort?
+            return ""
         
-        return { "sig": sig, "mask": mask, "type": sigtype }
+        if addr[:2] == "0x":
+            # ex: SlideAddress(0xDEADBEEF)
+            return f"SlideAddress({addr})"
+        else: # signature
+            sig = ""
+            mask = ""
 
-    return {}
+            byteList = addr.split(" ")
 
-def read_json(file):
-    reader = json.load(file)
-    for key in reader:
-        if key == "version":
-            for ver in reader[key]:
-                version_list.append(ver)
-                var_dict[ver] = []
+            for byte in byteList:
+                if(byte == "?"):
+                    mask += "?"
+                    sig += "\\x00"
+                else:
+                    mask += "x"
+                    sig += "\\x" + byte
 
-        elif key == "vtable":
-            for obj in reader[key]:
-                vtable_list.append({
-                    "name": obj["name"], 
-                    "parent": obj.get("parent", ""), 
-                    "address": obj.get("address", ""), 
-                    "functions": obj.get("functions", []), 
-                    "overload": obj.get("overload", "null")
-                })
+            sigtype = "SigscanCall" if(byteList[0] == "E8" or byteList[0] == "E9") else "Sigscan"
 
-                offset = 0
-                for dtor in vtable_list[-1]["functions"]:
-                    if dtor[:3] == "??1":
-                        vdtor_list.append({
-                            "vtable": vtable_list[-1]["name"],
-                            "name": mangled_name_to_variable(dtor),
-                            "mangled_name": dtor,
-                            "address": '0x{:X}'.format(int(vtable_list[-1]["address"], 16) + (offset * 8))
-                        })
-                        vtable_list[-1]["functions"][offset] = ""
-                    offset += 1
+            # ex: Sigscan("\x40\x53\x00", "xx?")
+            return f"{sigtype}(\"{sig}\", \"{mask}\")"
 
-        elif key == "functions":
-            for obj in reader[key]:
-                name = obj["name"]
+    def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
+        self.symbol_dict.setdefault(version, []).append({
+            "name": name,
+            "mangled_name": mangled_name,
+            # to be used directly in the reinterpret_cast call
+            "address": Map.__addr_helper(addr),
+        })
 
-                symbol_list.append({
-                    "name": mangled_name_to_variable(name),
-                    "mangled_name": name,
-                    "address": obj.get("address", ""),
-                    "signature": signature_helper(obj.get("signature", "")),
-                    "overload": obj.get("overload", "null")
-                })
-        elif key == "variables":
-            var_count = 0
-            for var_name in reader[key].keys():
-                var_list.append(var_name)
-                addr = reader[key][var_name]
-                if type(addr) is str:
-                    var_dict[""].append({
-                        "offset": var_count,
-                        "address": addr
+    def __parse(self, key: str, value):
+        match key:
+            case "vtable":
+                for obj in value:
+                    self.vtable_list.append({
+                        "name": obj["name"], 
+                        "parent": obj.get("parent", ""), 
+                        "address": obj.get("address", ""), 
+                        "functions": obj.get("functions", []), 
+                        "overload": obj.get("overload", "null")
                     })
-                elif type(addr) is list:
-                    i = 0
-                    # check to see if ver == "" (needs to be disallowed)
-                    for ver in version_list:
-                        var_dict[ver].append({
+
+                    offset = 0
+                    vtable = self.vtable_list[-1]
+                    for dtor in vtable["functions"]:
+                        if dtor[:3] == "??1":
+                            self.vdtor_list.append({
+                                "vtable": vtable["name"],
+                                "name": Windows.mangle_to_var(dtor),
+                                "mangled_name": dtor,
+                                "address": '0x{:X}'.format(int(vtable["address"], 16) + (offset * 8))
+                            })
+                            vtable["functions"][offset] = ""
+                        offset += 1
+
+            case "functions":
+                for obj in value:
+                    mangled_name = obj["name"]
+                    name = Windows.mangle_to_var(mangled_name)
+                    addr = obj["address"]
+
+                    self.symbol_list.append([name, mangled_name])
+
+                    if type(addr) is str:
+                        self.__add_func("default", name, mangled_name, addr)
+                    elif type(addr) is dict:
+                        for k, v in addr.items():
+                            self.__add_func(k, name, mangled_name, v)
+
+            case "variables":
+                var_count = 0
+                for var_name in value.keys():
+                    self.var_list.append(var_name)
+                    addr = value[var_name]
+                    if type(addr) is str:
+                        self.var_dict[""].append({
                             "offset": var_count,
-                            "address": addr[i]
+                            "address": addr
                         })
+                    elif type(addr) is dict:
+                        for ver in addr:
+                            self.var_dict[ver] = self.var_dict.get(key, []) + [{
+                                "offset": var_count,
+                                "address": addr[ver]
+                            }]
+                    var_count += 1
+
+            case "includes":
+                for strs in value:
+                    self.include_list.append(strs)
+
+            case _:
+                print(f"Unsupported api: {key}")
+
+    # todo: rewrite this
+    def process_vtable(self, vtable: dict):
+        vtable_out = next((x for x in self.processed_vtables if vtable["name"] == x["name"]), {})
+        if not vtable_out:
+            vtable_out["name"] = vtable["name"]
+            vtable_out["functions_out"] = []
+            vtable_out["functions_in"] = []
+            vtable_out["parents"] = []
+            i = 0
+            vtable_parent_str = vtable["parent"]
+            vtable_parent_out = {}
+            if vtable_parent_str:
+                vtable_parent = next((x for x in self.vtable_list if x["name"] == vtable_parent_str), {})
+                if vtable_parent:
+                    vtable_parent_out = self.process_vtable(vtable_parent)
+                    vtable_out["parents"].append(vtable_parent_out)
+                    vtable_out["parents"].extend(vtable_parent_out["parents"])
+            for a in vtable["functions"]:
+                func_name_base = a.replace(vtable["name"] + "@@", "@@", 1)
+                if len(vtable_out["parents"]) > 0:
+                    for parent in vtable_out["parents"]:
+                        func_name_base = re.sub('(@@@.*)' + parent["name"] + '@@', r'\g<1>1@', func_name_base)
+                    for b in vtable_parent_out["functions_in"][i:]:
+                        if func_name_base == b[0]:
+                            break
+                        vtable_out["functions_in"].append([b[0], i])
                         i += 1
-                elif type(addr) is dict:
-                    for ver in addr:
-                        var_dict[ver] = var_dict.get(key, []) + [{
-                            "offset": var_count,
-                            "address": addr[ver]
-                        }]
-                var_count += 1
+                vtable_out["functions_in"].append([func_name_base, i])
+                if a:
+                    vtable_out["functions_out"].append([a, i])
+                i += 1
+        self.processed_vtables.append(vtable_out)
+        return vtable_out
 
-        elif key == "includes":
-            for strs in reader[key]:
-                include_list.append(strs)
+    def generate_header(self, out: Output):
+        #*.hxx
+        out.header("")
+        out.header("#pragma once")
+        if len(self.symbol_list) > 0 or len(self.vtable_list) > 0:
+            out.header("")
+            out.header("extern \"C\" {")
+            for name, _ in self.symbol_list:
+                if name:
+                    out.header("\textern void* " + name + "_ptr;")
+            for a in self.vtable_list:
+                if a["name"]:
+                    out.header("\textern void* " + a["name"] + "_vtable;")
+            for a in self.vdtor_list:
+                if a["name"]:
+                    out.header("\textern void* " + a["name"] + "_ptr;")
+            out.header("}")
+        out.header("")
+        out.header("void InitBedrockPointers();")
 
-def mangled_name_to_variable(str):
-    str = str.replace("?", '_')
-    str = str.replace("@", '_')
-    return str
 
-def generate_init_cpp():
-    #flags
+    def generate_init(self, out: Output):
+        self.generate_header(out)
 
+        #*.cxx
+        out.cxx("")
+        out.cxx("#include <array>")
+        out.cxx("#include <Zenova/Hook.h>")
+        out.cxx("#include <Zenova/Minecraft.h>")
+        out.cxx("")
+        out.cxx("#include \"" + file_header_name + "\"")
+        for include in self.include_list:
+            out.cxx("#include \"" + include + "\"")
+        out.cxx("")
 
-    #*.hxx
-    output_header("")
-    output_header("#pragma once")
-    if len(symbol_list) > 0 or len(vtable_list) > 0:
-        output_header("")
-        output_header("extern \"C\" {")
-        for a in symbol_list:
-            if a["name"]:
-                output_header("\textern void* " + a["name"] + "_ptr;")
-        for a in vtable_list:
-            if a["name"]:
-                output_header("\textern void* " + a["name"] + "_vtable;")
-        for a in vdtor_list:
-            if a["name"]:
-                output_header("\textern void* " + a["name"] + "_ptr;")
-        output_header("}")
-    output_header("")
-    output_header("void InitBedrockPointers();")
-    output_header("void InitVersionPointers();")
+        out.cxx("using namespace Zenova::Hook;")
+        out.cxx("")
 
-    #*.cxx
-    output_cxx("")
-    output_cxx("#include <array>")
-    output_cxx("#include <Zenova/Hook.h>")
-    output_cxx("#include <Zenova/Minecraft.h>")
-    output_cxx("")
-    output_cxx("#include \"" + file_header_name + "\"")
-    for include in include_list:
-        output_cxx("#include \"" + include + "\"")
-    output_cxx("")
+        # use lambdas to initialize the global variables (allows for "const" initialization)
+        if self.var_list:
+            var_arr_str = "std::array<uintptr_t, " + str(len(self.var_list)) + ">"
+            out.cxx("namespace {")
+            out.cxx("static " + var_arr_str + " var_addrs = []() -> " + var_arr_str + " {")
+            out.cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
+            out.cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
+            out.cxx("")
 
-    output_cxx("using namespace Zenova::Hook;")
-    output_cxx("")
+            # reimplement FindVariable when it's a more stable concept
+            for var in self.var_dict[""]:
+                offset, addr = var.values()
+                out.cxx("\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
 
-    # use lambdas to initialize the global variables (allows for "const" initialization)
-    if var_list:
-        var_arr_str = "std::array<uintptr_t, " + str(len(var_list)) + ">"
-        output_cxx("namespace {")
-        output_cxx("static " + var_arr_str + " var_addrs = []() -> " + var_arr_str + " {")
-        output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
-        output_cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
-        output_cxx("")
+            out.cxx("")
+            prefix = ""
+            for ver in self.var_dict:
+                if ver != "":
+                    out.cxx("\t" + prefix + "if (versionId == \"" + ver + "\") {")
+                    for var in self.var_dict[ver]:
+                        offset, addr = var.values()
+                        out.cxx("\t\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
+                    out.cxx("\t}")
+                    prefix = "else "
 
-        # reimplement FindVariable when it's a more stable concept
-        for var in var_dict[""]:
-            offset, addr = var.values()
-            output_cxx("\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
+            if prefix == "else ":
+                out.cxx("")
 
-        output_cxx("")
-        prefix = ""
-        for ver in var_dict:
-            if ver != "":
-                output_cxx("\t" + prefix + "if (versionId == \"" + ver + "\") {")
-                for var in var_dict[ver]:
-                    offset, addr = var.values()
-                    output_cxx("\t\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
-                output_cxx("\t}")
-                prefix = "else "
+            out.cxx("\treturn vars;")
+            out.cxx("}();")
+            out.cxx("}")
+            out.cxx("")
 
-        if prefix == "else ":
-            output_cxx("")
+            i = 0
+            for name in self.var_list:
+                if name:
+                    out.cxx(name + " = *reinterpret_cast<" + name[:name.rfind("&")] + "*>(var_addrs[" + str(i) + "])" + ";")
+                i += 1
+            out.cxx("")
 
-        output_cxx("\treturn vars;")
-        output_cxx("}();")
-        output_cxx("}")
-        output_cxx("")
-
-        i = 0
-        for name in var_list:
+        for name, _ in self.symbol_list:
             if name:
-                output_cxx(name + " = *reinterpret_cast<" + name[:name.rfind("&")] + "*>(var_addrs[" + str(i) + "])" + ";")
-            i += 1
-        output_cxx("")
+                out.cxx("void* " + name + "_ptr;")
+        for a in self.vtable_list:
+            if a["name"]:
+                out.cxx("void* " + a["name"] + "_vtable;")
+        for a in self.vdtor_list:
+            if a["name"]:
+                out.cxx("void* " + a["name"] + "_ptr;")
+        out.cxx("")
 
-    for a in symbol_list:
-        if a["name"]:
-            output_cxx("void* " + a["name"] + "_ptr;")
-    for a in vtable_list:
-        if a["name"]:
-            output_cxx("void* " + a["name"] + "_vtable;")
-    for a in vdtor_list:
-        if a["name"]:
-            output_cxx("void* " + a["name"] + "_ptr;")
-    output_cxx("")
+        out.cxx("void InitBedrockPointers() {")
+        out.cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
+        # todo: ensure default is last
+        # todo: handle more complex version support
+        # - copying common sets for multiple versions into a function to call in both cases
+        if len(self.symbol_dict.items()) == 1:
+            for ver, symbols in self.symbol_dict.items():
+                for func in symbols:
+                    out.cxx("\t" + func["name"] + "_ptr = reinterpret_cast<void*>(" + func["address"] + ");")
+        else:
+            prefix = ""
+            for ver, symbols in self.symbol_dict.items():
+                if ver == "default":
+                    out.cxx("\telse {")
+                else:
+                    out.cxx(f"\t{prefix}if (versionId == \"{ver}\") {{")
+                    prefix = "else "
 
-    output_cxx("void InitBedrockPointers() {")
-    for a in symbol_list:
-        address = a["address"]
-        if type(address) == str and address != "":
-            output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(SlideAddress(" + address + "));")
-            
-        signature = a["signature"]
-        if type(signature) == dict and len(signature) == 3: #signature_helper
-            output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(" + signature["type"] + "(\"" + signature["sig"] + "\", \"" + signature["mask"] + "\"));")
+                for func in symbols:
+                    out.cxx("\t\t" + func["name"] + "_ptr = reinterpret_cast<void*>(" + func["address"] + ");")
+                        
+                out.cxx("\t}")
 
-    for a in vtable_list:
-        name = a["name"]
-        address = a["address"]
+        for a in self.vtable_list:
+            name = a["name"]
+            address = a["address"]
 
-        if type(address) == str and address != "":
-            output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address + "));")
-        if a["overload"] == "always" or (a["overload"] == "null" and address == ""):
-            output_cxx("\t" + name + "_vtable = reinterpret_cast<void*>(FindVtable(\"" + name + "\"));")
+            if type(address) == str and address != "":
+                out.cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address + "));")
+            if a["overload"] == "always" or (a["overload"] == "null" and address == ""):
+                out.cxx("\t" + name + "_vtable = reinterpret_cast<void*>(FindVtable(\"" + name + "\"));")
 
-    for a in vdtor_list:
-        output_cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(GetRealDtor(SlideAddress(" + a["address"] + ")));")
-    output_cxx("}")
-    output_cxx("")
-
-    output_cxx("void InitVersionPointers() {")
-    output_cxx("\tconst Zenova::Version& versionId = Zenova::Minecraft::version();")
-
-    #I want to come back and add support for version based signatures
-
-    cxx_dict_list = [{}, {}]
-    for vtable in vtable_list:
-        address_list = vtable["address"]
-        if(type(address_list) == list):
-            i = 0
-            for address in address_list:
-                if(address != ""):
-                    cxx_str = "\t\t" + vtable["name"] + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address_list[i] + "));"
-                    if(version_list[i] not in cxx_dict_list[0]):
-                        cxx_dict_list[0][version_list[i]] = [ cxx_str ]
-                    else:
-                        cxx_dict_list[0][version_list[i]].append(cxx_str)
-                i += 1
-
-    for sym in symbol_list:
-        address_list = sym["address"]
-        if(type(address_list) == list):
-            i = 0
-            for address in address_list:
-                if(address != ""):
-                    cxx_str = "\t\t" + sym["name"] + "_ptr = reinterpret_cast<void*>(SlideAddress(" + address_list[i] + "));"
-                    if(version_list[i] not in cxx_dict_list[1]):
-                        cxx_dict_list[1][version_list[i]] = [ cxx_str ]
-                    else:
-                        cxx_dict_list[1][version_list[i]].append(cxx_str)
-                i += 1
-
-    if cxx_dict_list[0] or cxx_dict_list[1]:
-        prefix = ""
-        for version in version_list:
-            output_cxx("\t" + prefix + "if(versionId == \"" + version + "\") {")
-            for cxx_dict in cxx_dict_list:
-                for cxx in cxx_dict.get(version, []):
-                    output_cxx(cxx)
-            output_cxx("\t}")
-            prefix = "else "
-
-    output_cxx("}")
-
-def process_vtable(vtable):
-    vtable_out = next((x for x in vtable_output if vtable["name"] == x["name"]), {})
-    if not vtable_out:
-        vtable_out["name"] = vtable["name"]
-        vtable_out["functions_out"] = []
-        vtable_out["functions_in"] = []
-        vtable_out["parents"] = []
-        i = 0
-        vtable_parent_str = vtable["parent"]
-        vtable_parent_out = {}
-        if vtable_parent_str:
-            vtable_parent = next((x for x in vtable_list if x["name"] == vtable_parent_str), {})
-            if vtable_parent:
-                vtable_parent_out = process_vtable(vtable_parent)
-                vtable_out["parents"].append(vtable_parent_out)
-                vtable_out["parents"].extend(vtable_parent_out["parents"])
-        for a in vtable["functions"]:
-            func_name_base = a.replace(vtable["name"] + "@@", "@@", 1)
-            if len(vtable_out["parents"]) > 0:
-                for parent in vtable_out["parents"]:
-                    func_name_base = re.sub('(@@@.*)' + parent["name"] + '@@', r'\g<1>1@', func_name_base)
-                for b in vtable_parent_out["functions_in"][i:]:
-                    if func_name_base == b[0]:
-                        break
-                    vtable_out["functions_in"].append([b[0], i])
-                    i += 1
-            vtable_out["functions_in"].append([func_name_base, i])
-            if a:
-                vtable_out["functions_out"].append([a, i])
-            i += 1
-    vtable_output.append(vtable_out)
-    return vtable_out
-            
-        
-
-#NASM, MASM doesn't allow long identifiers
-def generate_init_func_x86(bit):
-    if bit == 64:
-        reg = "rax"
-        pointer_size = 8
-        output_asm("bits 64")
-    if bit == 32:
-        reg = "eax"
-        pointer_size = 4
-
-    output_asm("SECTION .data")
-    for a in symbol_list:
-        output_asm("extern " + a["name"] + "_ptr")
-    for a in vdtor_list:
-        output_asm("extern " + a["name"] + "_ptr")
-    for a in vtable_list:
-        output_asm("extern " + a["name"] + "_vtable")
-    output_asm("")
-    output_asm("SECTION .text")
-    for a in symbol_list:
-        output_asm("global " + a["mangled_name"])
-        output_asm(a["mangled_name"] + ":")
-        output_asm("\tjmp qword [rel " + mangled_name_to_variable(a["mangled_name"]) + "_ptr" + "]")
-    for a in vdtor_list:
-        output_asm("global " + a["mangled_name"])
-        output_asm(a["mangled_name"] + ":")
-        output_asm("\tjmp qword [rel " + a["name"] + "_ptr]")
-    for vtable in vtable_list:
-        vtable_out = process_vtable(vtable)
-        for a in vtable_out["functions_out"]:
-            output_asm("global " + a[0])
-            output_asm(a[0] + ":")
-            output_asm("\tmov " + reg + ", [rel " + vtable_out["name"] + "_vtable]")
-            output_asm("\tjmp [" + reg + "+" + str(a[1] * pointer_size) + "]")
+        for a in self.vdtor_list:
+            out.cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(GetRealDtor(SlideAddress(" + a["address"] + ")));")
+        out.cxx("}")
+        out.cxx("")
 
 
 
-def generate_init_windows():
-    output_cxx("")
-    output_cxx("BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {")
-    output_cxx("\tif(fdwReason == DLL_PROCESS_ATTACH) {")
-    output_cxx("\t\tInitBedrockPointers();")
-    output_cxx("\t\tInitVersionPointers();")
-    output_cxx("\t}")
-    output_cxx("\treturn TRUE;")
-    output_cxx("}")
+# Supported Platforms
+class Windows:
+    def mangle_to_var(name):
+        name = name.replace("?", '_')
+        name = name.replace("@", '_')
+        return name
+
+    # relies on NASM, MASM doesn't allow long identifiers
+    def __x86(self, out: Output, map: Map, is64bit):
+        if is64bit:
+            reg = "rax"
+            pointer_size = 8
+            out.asm("bits 64")
+        else:
+            reg = "eax"
+            pointer_size = 4
+
+        out.asm("SECTION .data")
+        for name, _ in map.symbol_list:
+            out.asm("extern " + name + "_ptr")
+        for a in map.vdtor_list:
+            out.asm("extern " + a["name"] + "_ptr")
+        for a in map.vtable_list:
+            out.asm("extern " + a["name"] + "_vtable")
+        out.asm("")
+        out.asm("SECTION .text")
+        for var_name, mangled_name in map.symbol_list:
+            out.asm("global " + mangled_name)
+            out.asm(mangled_name + ":")
+            out.asm("\tjmp qword [rel " + var_name + "_ptr" + "]")
+        for a in map.vdtor_list:
+            out.asm("global " + a["mangled_name"])
+            out.asm(a["mangled_name"] + ":")
+            out.asm("\tjmp qword [rel " + a["name"] + "_ptr]")
+        for vtable in map.vtable_list:
+            vtable_out = map.process_vtable(vtable)
+            for a in vtable_out["functions_out"]:
+                out.asm("global " + a[0])
+                out.asm(a[0] + ":")
+                out.asm("\tmov " + reg + ", [rel " + vtable_out["name"] + "_vtable]")
+                out.asm("\tjmp [" + reg + "+" + str(a[1] * pointer_size) + "]")
+
+    def generate_init(self, out: Output):
+        out.cxx("")
+        out.cxx("BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved) {")
+        out.cxx("\tif(fdwReason == DLL_PROCESS_ATTACH) {")
+        out.cxx("\t\tInitBedrockPointers();")
+        out.cxx("\t}")
+        out.cxx("\treturn TRUE;")
+        out.cxx("}")
+
+    def generate_asm(self, arch: str, out: Output, map: Map):
+        match arch:
+            case "x64":
+                self.__x86(out, map, True)
+
+            case "x86":
+                self.__x86(out, map, False)
+
+            case _:
+                print(f"Unsupported arch: {arch}")
 
 
-
-def generate_init_func():
+def generate(args: Args, out: Output, map: Map):
+    file_comment = "This file was automatically generated using tools/" + os.path.basename(__file__)
     gen_time = datetime.datetime.utcnow().strftime("%a %b %d %Y %H:%M:%S UTC")
-    output_cxx("// This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_cxx("// " + gen_time)
+    out.cxx("// " + file_comment)
+    out.cxx("// " + gen_time)
 
-    output_header("// This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_header("// " + gen_time)
+    out.header("// " + file_comment)
+    out.header("// " + gen_time)
 
-    generate_init_cpp()
+    out.asm("; " + file_comment)
+    out.asm("; " + gen_time)
 
-    if platform == "windows" and entry:
-        generate_init_windows()
+    map.generate_init(out)
 
-    output_asm("; This file was automatically generated using tools/" + os.path.basename(__file__))
-    output_asm("; " + gen_time)
+    match args.platform:
+        case "windows":
+            platform = Windows()
 
-    if arch == "x86":
-        generate_init_func_x86(32)
-    if arch == "x64":
-        generate_init_func_x86(64)
-    if arch == "armeabi-v7a":
-        print(arch + " not supported")
-        #generate_init_func_arm()
+        case _:
+            print(f"Unsupported platform: {args.platform}")
 
+    if args.entry:
+        platform.generate_init(out)
 
+    platform.generate_asm(args.arch, out, map)
 
-def rebuild_symbol_gen():
-    global out_file_cpp, out_file_header, out_file_asm
-    out_file_cpp = open(directory + "/initcpp.cpp", "w")
-    out_file_header = open(directory + "/" + file_header_name, "w")
-    out_file_asm = open(directory + "/initasm.asm", "w")
-
-    if(debug_output):
-        print("cxx output: " + out_file_cpp.name)
-        print("hxx output: " + out_file_header.name)
-        print("asm output: " + out_file_asm.name)
-
-    for file_path in in_files:
-        for glob_file_path in glob(file_path):
-            file_full_path = os.path.abspath(glob_file_path)
-            print("Parsing Symbol Map: " + file_full_path)
-            with open(file_full_path, "r") as f:
-                read_json(f)
-
-    generate_init_func()
-    
-    if(debug_output):
-        print(cxx_output)
-        print(hxx_output)
-        print(asm_output)
-
-    out_file_cpp.close()
-    out_file_header.close()
-    out_file_asm.close()
-
-
-
-def should_rebuild_symbols():
-    global directory, in_files
+def should_rebuild_symbols(args: Args) -> bool:
+    if args.rebuild:
+        return True
     
     last_asm_lines = []
 
     try:
-        with open(directory + "/initasm.asm") as last_asm_file:
+        with open(args.directory + "/initasm.asm") as last_asm_file:
             last_asm_lines = last_asm_file.readlines()
     except FileNotFoundError: # if file doesn't exist
         return True
@@ -481,7 +468,7 @@ def should_rebuild_symbols():
     except ValueError as e: # if time format is not current
         return True
     
-    for file_path in in_files:
+    for file_path in args.in_files:
         for glob_file_path in glob(file_path):
             if datetime.datetime.utcfromtimestamp(os.path.getmtime(glob_file_path)) > last_gen_time: # if one of the .json symbol maps is newer than the last generated code
                 return True
@@ -493,7 +480,22 @@ def should_rebuild_symbols():
 
 
 
-if should_rebuild_symbols():
-    rebuild_symbol_gen()
+args = Args()
+if should_rebuild_symbols(args):
+    out = Output(args)
+
+    map = Map()
+
+    for file_path in args.in_files:
+        for glob_file_path in glob(file_path):
+            file_full_path = os.path.abspath(glob_file_path)
+            print("Parsing Symbol Map: " + file_full_path)
+            with open(file_full_path, "r") as f:
+                map.parse(f)
+
+    generate(args, out, map)
+
+    out.dump()
+    out.cleanup()
 else:
     print("Skipping symbol rebuild")

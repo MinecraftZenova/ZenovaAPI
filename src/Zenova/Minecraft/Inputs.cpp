@@ -22,6 +22,14 @@ namespace Zenova {
         }
     }
 
+    Input& InputManager::addInput(const std::string& name, std::function<void(bool)> input) {
+        static std::function<void(bool)> safeguard(input);
+
+        return addInput(name, [](bool pressed, IClientInstance&) {
+            safeguard(pressed);
+            });
+    }
+
     const std::vector<std::pair<std::string, Input>>& InputManager::getInputs() {
         return buttons;
     }

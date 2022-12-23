@@ -15,7 +15,7 @@ if(MSVC)
         string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
         set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
-        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}/dev/lib")
     endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 endif()
 
@@ -105,6 +105,14 @@ add_custom_command(
 
 # this is to help test script changes through mods
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py" "$ENV{ZENOVA_DATA}/dev/tools/process_symbol_map.py" COPYONLY)
+
+add_custom_command(TARGET ZenovaAPI
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc
+    $ENV{ZENOVA_DATA}/dev/inc
+    COMMENT "Headers copied to $ENV{ZENOVA_DATA}/dev/inc"
+)
 
 source_group(TREE ${MAPS_DIR} PREFIX "Symbol Maps//" FILES ${SYMMAPS})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})
