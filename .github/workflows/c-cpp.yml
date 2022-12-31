@@ -15,8 +15,11 @@ jobs:
     - name: Git Checkout
       uses: actions/checkout@v2
 
-    - name: Setup Build Directory
-      run: mkdir build -ea 0
+    - name: Setup Directories
+      run: |
+        mkdir build -ea 0;
+        mkdir dev\lib;
+        mkdir artifact;
       
     - name: Set Git Tag
       if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
@@ -33,11 +36,12 @@ jobs:
       run: |
         cmake -S . -B build
         cmake --build build --config Release
+        mv build/Release/* build
 
     - name: File Upload Setup
       run: |
-        mkdir dev\lib; cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv tools dev; mv inc dev
-        mkdir artifact; cp build\ZenovaAPI.dll artifact\ZenovaAPI.dll; cp build\ZenovaAPI.exp artifact\ZenovaAPI.exp; cp build\ZenovaAPI.lib artifact\ZenovaAPI.lib
+        cp build\ZenovaAPI.lib dev\lib\ZenovaAPI.lib; mv tools dev; mv inc dev
+        cp build\ZenovaAPI.dll artifact\ZenovaAPI.dll; cp build\ZenovaAPI.exp artifact\ZenovaAPI.exp; cp build\ZenovaAPI.lib artifact\ZenovaAPI.lib
 
     - name: Create Development Package
       uses: papeloto/action-zip@v1

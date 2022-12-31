@@ -6,17 +6,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 project(ZenovaAPI CXX ASM_NASM)
 
-if(MSVC)
-    # ZenovaAPI can't be built as debug because it plays around with variables inside Minecraft's code
-    # and debug changes the size of the variables (ex: std::string)
-    set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "" FORCE)
+set(ZenovaData "$ENV{ZENOVA_DATA}")
 
-    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
-        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}")
-        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "$ENV{ZENOVA_DATA}/dev/lib")
-    endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
+if (MSVC AND NOT ZenovaData STREQUAL "")
+	# ZenovaAPI can't be built as debug because it plays around with variables inside Minecraft's code
+	# and debug changes the size of the variables (ex: std::string)
+	set(CMAKE_CONFIGURATION_TYPES "Release;RelWithDebInfo" CACHE STRING "" FORCE)
+
+	foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+		string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+		set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${ZenovaData}")
+		set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${ZenovaData}")
+		set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${ZenovaData}/dev/lib")
+	endforeach(OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES)
 endif()
 
 set(generated_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/generated")
@@ -103,16 +105,18 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py ${SYMMAPS_DIR}/*.json
 )
 
-# this is to help test script changes through mods
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py" "$ENV{ZENOVA_DATA}/dev/tools/process_symbol_map.py" COPYONLY)
+if(NOT ZenovaData STREQUAL "")
+	# this is to help test script changes through mods
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/tools/process_symbol_map.py" "${ZenovaData}/dev/tools/process_symbol_map.py" COPYONLY)
 
-add_custom_command(TARGET ZenovaAPI
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/inc
-    $ENV{ZENOVA_DATA}/dev/inc
-    COMMENT "Headers copied to $ENV{ZENOVA_DATA}/dev/inc"
-)
+	add_custom_command(TARGET ZenovaAPI
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+		${CMAKE_CURRENT_SOURCE_DIR}/inc
+		${ZenovaData}/dev/inc
+		COMMENT "Headers copied to ${ZenovaData}/dev/inc"
+	)
+endif()
 
 source_group(TREE ${MAPS_DIR} PREFIX "Symbol Maps//" FILES ${SYMMAPS})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/inc PREFIX "Header Files//" FILES ${API_INCLUDE_LIST})
