@@ -5,41 +5,42 @@
 #include <list>
 
 namespace Zenova {
-	namespace Hook {
-		std::unordered_map<std::string, uintptr_t> functions;
-		std::unordered_map<std::string, uintptr_t> vtables;
-		std::unordered_map<std::string, uintptr_t> variables;
-		//std::unordered_map<std::string, std::unordered_map<std::string, uintptr_t>> Symbols;
+	namespace {
+		// todo: remove?
+		class MemoryState {
+			u8* mLocation;
+			std::size_t mSize;
+			std::vector<u8> mBytes;
+			u32 mProtection;
 
+		public:
+			MemoryState(u8* location, std::size_t size) : mLocation(location), mSize(size) {
+				mProtection = Platform::SetPageProtect(location, size, ProtectionFlags::Execute | ProtectionFlags::Write);
+
+				mBytes.reserve(size);
+
+				for (auto i = 0; i < size; ++i) {
+					mBytes.push_back(location[i]);
+				}
+			}
+
+			~MemoryState() {
+				for (auto i = 0; i < mSize; ++i) {
+					mLocation[i] = mBytes.at(i);
+				}
+
+				Platform::SetPageProtect(mLocation, mSize, mProtection);
+			}
+		};
+	}
+
+	namespace Hook {
 		uintptr_t SlideAddress(size_t offset) {
 			return Platform::GetMinecraftBaseAddress() + offset;
 		}
 
 		uintptr_t UnslideAddress(uintptr_t result) {
 			return result - Platform::GetMinecraftBaseAddress();
-		}
-
-		uintptr_t FindAddressHelper(const std::unordered_map<std::string, uintptr_t>& symbolMap, const char* symbol, const char* mapName) {
-			auto symbolMapIter = symbolMap.find(symbol);
-
-			if(symbolMapIter != symbolMap.end()) {
-				return symbolMapIter->second;
-			}
-
-			logger.warn("{} in {} not found", symbol, mapName);
-			return 0;
-		}
-
-		uintptr_t FindMangledSymbol(const char* function) {
-			return FindAddressHelper(functions, function, "function");
-		}
-
-		uintptr_t FindVTable(const char* vtable) {
-			return FindAddressHelper(vtables, vtable, "vtable");
-		}
-
-		uintptr_t FindVariable(const char* variable) {
-			return FindAddressHelper(variables, variable, "variable");
 		}
 
 		bool MemCompare(const char* data, const char* sig, const char* mask) {
@@ -91,35 +92,8 @@ namespace Zenova {
 			return 0;
 		}
 
-		// todo: remove?
-		class MemoryState {
-			u8* mLocation;
-			std::size_t mSize;
-			std::vector<u8> mBytes;
-			u32 mProtection;
-
-		public:
-			MemoryState(u8* location, std::size_t size) : mLocation(location), mSize(size) {
-				mProtection = Platform::SetPageProtect(location, size, ProtectionFlags::Execute | ProtectionFlags::Write);
-
-				mBytes.reserve(size);
-
-				for(auto i = 0; i < size; ++i) {
-					mBytes.push_back(location[i]);
-				}
-			}
-
-			~MemoryState() {
-				for(auto i = 0; i < mSize; ++i) {
-					mLocation[i] = mBytes.at(i);
-				}
-
-				Platform::SetPageProtect(mLocation, mSize, mProtection);
-			}
-		};
-
-		//this is platform and arch dependent right now, need to add support for others in the future 
-		bool Create(void* function, void* funcJump, void* funcTrampoline) {
+		// this is platform and arch dependent right now, need to add support for others in the future 
+		bool Create(void* function, void* funcJump, void* funcTrampoline, const char* funcName) {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
@@ -129,14 +103,18 @@ namespace Zenova {
 				if(*u8Function == 0xff && *(u8Function + 1) == 0x25) {
 					uintptr_t* address = reinterpret_cast<uintptr_t*>(u8Function + (*reinterpret_cast<u32*>(u8Function + 2)) + 6);
 
-					successful = Platform::CreateHook(reinterpret_cast<void*>(*address), funcJump, reinterpret_cast<void**>(funcTrampoline));
+					successful = Platform::CreateHook(reinterpret_cast<void*>(*address), funcJump, funcTrampoline);
 				}
+			}
+
+			if (!successful) {
+				Zenova_Info("Hook failed with function {}", funcName);
 			}
 
 			return successful;
 		}
 
-		bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline) {
+		bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline, const char* funcName) {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
@@ -159,8 +137,12 @@ namespace Zenova {
 						address = *reinterpret_cast<void**>(offsetVtable + *reinterpret_cast<u32*>(u8Function + 2));
 					}
 
-					successful = Platform::CreateHook(address, funcJump, reinterpret_cast<void**>(funcTrampoline));
+					successful = Platform::CreateHook(address, funcJump, funcTrampoline);
 				}
+			}
+
+			if (!successful) {
+				Zenova_Info("VHook failed with function {}", funcName);
 			}
 
 			return successful;

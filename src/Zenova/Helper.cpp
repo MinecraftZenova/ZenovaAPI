@@ -10,7 +10,6 @@
 #include "Zenova.h"
 #include "Zenova/Globals.h"
 #include "Zenova/JsonHelper.h"
-#include "Zenova/MessageRedirection.h"
 #include "Zenova/Minecraft.h"
 #include "Zenova/Platform/PlatformImpl.h"
 #include "Zenova/Profile/Manager.h"
@@ -22,35 +21,36 @@
 #include "generated/initcpp.h"
 
 namespace Zenova {
-	u32 start(void* platformArgs) {
+	bool start(void* platformArgs) {
 		Platform::DebugPause();
 
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if (run) {
-			MessageRedirection console;
-
 			logger.info("Zenova Started");
 			logger.info("ZenovaData Location: {}", manager.dataFolder);
-
-			manager.init();
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
 			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 			logger.info("Minecraft's Folder: {}", Platform::GetMinecraftFolder());
-			
-			InitBedrockPointers();
 
+			// todo: currently running into a race issue with this
+			// if possible figure out how to pause the minecraft loading until everything is initialized
+			// (might be fixed with separating the start into 2 functions but if possible I'd like to 
+			// ensure this isn't a problem again)
 			createResourceHooks();
 			createInputHooks();
 
-			manager.load(manager.getLaunchedProfile());
-			
-			while(run) {
-				manager.update();
-			}
-
-			logger.info("Zenova Stopped");
+			manager.init();
 		}
+		return run;
+	}
+
+	u32 run() {
+		while (true) {
+			manager.update();
+		}
+
+		logger.info("Zenova Stopped");
 
 		PlatformImpl::Destroy();
 		return 0;

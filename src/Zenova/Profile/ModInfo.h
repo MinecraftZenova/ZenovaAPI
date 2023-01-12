@@ -11,7 +11,6 @@ namespace Zenova {
 		void* mHandle = nullptr;
 		std::string mNameId, mName = "", mDescription = "";
 		std::string mVersion = "";
-		std::vector<std::string> mMcVersion;
 
 		ModInfo(const std::string& name);
 		ModInfo(ModInfo&&) noexcept;

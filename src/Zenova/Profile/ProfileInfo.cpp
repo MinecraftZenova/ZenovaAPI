@@ -31,11 +31,8 @@ namespace Zenova {
         }
     }
 
+    // verisonId is the most necessary, should we check for others?
     ProfileInfo::operator bool() const {
-        if (versionId.empty()) {
-            return false;
-        }
-
-        return true;
+        return !versionId.empty();
     }
 }

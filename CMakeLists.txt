@@ -67,9 +67,9 @@ endif()
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(MinHook "${CMAKE_CURRENT_SOURCE_DIR}/lib/libMinHook-x64-v140-mtd.lib")
+        set(MinHook "${CMAKE_CURRENT_SOURCE_DIR}/lib/libMinHook-x64-v141-mtd.lib")
     else()
-        set(MinHook "${CMAKE_CURRENT_SOURCE_DIR}/lib/libMinHook-x86-v140-mtd.lib")
+        set(MinHook "${CMAKE_CURRENT_SOURCE_DIR}/lib/libMinHook-x86-v141-mtd.lib")
     endif()
 endif()
 

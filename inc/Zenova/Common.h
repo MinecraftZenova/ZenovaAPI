@@ -20,6 +20,12 @@
 	#define FSIG __func__
 #endif
 
+#define NO_COPY_OR_MOVE(Class) \
+	Class(const Class&) = delete; \
+	Class(Class&&) = delete; \
+	Class& operator=(const Class&) = delete; \
+	Class& operator=(Class&&) = delete
+
 namespace Zenova {
 	using exception = std::runtime_error;
 

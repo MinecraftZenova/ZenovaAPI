@@ -6,8 +6,8 @@ namespace Zenova {
 	void _addFullKeyboardGamePlayControls(VanillaClientInputMappingFactory* self, KeyboardInputMapping& keyboard, MouseInputMapping& mouse) {
 		__addFullKeyboardGamePlayControls(self, keyboard, mouse);
 
-		for (auto& [name, _] : InputManager::getInputs()) {
-			self->createKeyboardAndMouseBinding(keyboard, mouse, "button." + name, "key." + name);
+		for (auto& input : InputManager::getInputs()) {
+			self->createKeyboardAndMouseBinding(keyboard, mouse, input.buttonName, input.keyName);
 		}
 	}
 
@@ -15,17 +15,10 @@ namespace Zenova {
 	void _addInvariantGamePlayGameControllerControls(VanillaClientInputMappingFactory* self, GameControllerInputMapping& gamepad, ClientInputMappingFactory::MappingControllerType controllerType) {
 		__addInvariantGamePlayGameControllerControls(self, gamepad, controllerType);
 
-		switch (controllerType) {
-			case ClientInputMappingFactory::MappingControllerType::Xbox:
-				for (auto& [name, _] : InputManager::getInputs()) {
-					self->createGamepadBinding(gamepad, self->mXboxLayout, "button." + name, "key." + name);
-				}
-				break;
-			default:
-				for (auto& [name, _] : InputManager::getInputs()) {
-					self->createGamepadBinding(gamepad, self->mGenericLayout, "button." + name, "key." + name);
-				}
-				break;
+		auto& layout = (controllerType == ClientInputMappingFactory::MappingControllerType::Xbox) 
+			? self->mXboxLayout : self->mGenericLayout;
+		for (auto& input : InputManager::getInputs()) {
+			self->createGamepadBinding(gamepad, layout, input.buttonName, input.keyName);
 		}
 	}
 
@@ -37,24 +30,25 @@ namespace Zenova {
 
 	inline RemappingType mapType;
 
+	void mapBind(std::vector<Keymapping>& mapping, const std::string& name, const Keybind& bind) {
+		if (bind.hasKeys()) {
+			mapping.emplace_back(name, bind.mKeys, bind.mCreateGui);
+		}
+	}
+
 	static void (*_assignDefaultMapping)(RemappingLayout*, std::vector<Keymapping>&&);
 	void assignDefaultMapping(RemappingLayout* self, std::vector<Keymapping>&& mapping) {
-		auto pushBind = [&mapping](const std::string& name, const Keybind& bind) {
-			if (bind) {
-				mapping.emplace_back("key." + name, bind.mKeys, bind.mCreateGui);
-			}
-		};
 
 		switch (mapType) {
 			case RemappingType::Keyboard:
-				for (auto& [name, input] : InputManager::getInputs()) {
-					pushBind(name, input.mKeyboard);
+				for (auto& data : InputManager::getInputs()) {
+					mapBind(mapping, data.keyName, data.input.mKeyboard);
 				}
 				break;
 
 			case RemappingType::Gamepad:
-				for (auto& [name, input] : InputManager::getInputs()) {
-					pushBind(name, input.mGamepad);
+				for (auto& data : InputManager::getInputs()) {
+					mapBind(mapping, data.keyName, data.input.mGamepad);
 				}
 				break;
 
@@ -82,17 +76,17 @@ namespace Zenova {
 	void _registerInputHandlers(MinecraftInputHandler* self) {
 		__registerInputHandlers(self);
 
-		for (auto& [name, input] : InputManager::getInputs()) {
-			self->mInput->registerButtonDownHandler("button." + name, 
-													[callback = input.mCallback](FocusImpact, IClientInstance& client) {
-														if (callback) 
-															callback(true, client);
-													}, false);
-			self->mInput->registerButtonUpHandler("button." + name,
-												  [callback = input.mCallback](FocusImpact, IClientInstance& client) {
-													  if (callback) 
-														  callback(false, client);
-												  }, false);
+		for (auto& data : InputManager::getInputs()) {
+			self->mInput->registerButtonDownHandler(data.buttonName,
+				[callback = data.input.mCallback](FocusImpact, IClientInstance& client) {
+				if (callback)
+					callback(true, client);
+			}, false);
+			self->mInput->registerButtonUpHandler(data.buttonName,
+				[callback = data.input.mCallback](FocusImpact, IClientInstance& client) {
+				if (callback)
+					callback(false, client);
+			}, false);
 		}
 	}
 

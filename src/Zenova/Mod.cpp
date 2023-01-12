@@ -1,6 +1,10 @@
 #include "Zenova/Mod.h"
 
+#include "Zenova/Globals.h"
+
 namespace Zenova {
-	Mod::Mod() {}
-	Mod::~Mod() {}
+	// todo: get the actual mod folder, for the time being pass the zenova folder
+	Mod::Mod() {
+		ctx.folder = manager.dataFolder;
+	}
 }

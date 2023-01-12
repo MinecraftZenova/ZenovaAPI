@@ -14,7 +14,7 @@ namespace Zenova {
             d.ParseStream(json::IStreamWrapper(ifs));
         }
         else if (missingFile) {
-            logger.warn("\"{}\" not found", fileLocation);
+            logger.warn("File \"{}\" not found", fileLocation);
         }
 
         return d;

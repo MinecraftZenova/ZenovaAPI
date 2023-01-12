@@ -19,7 +19,7 @@ namespace Zenova {
 		}
 	}
 
-	bool Platform::CreateHook(const char* module, const char* function, void* funcJump, void** funcTrampoline) {
+	bool Platform::CreateHook(const char* module, const char* function, void* funcJump, void* funcTrampoline) {
 		return CreateHook(FindAddress(module, function), funcJump, funcTrampoline);
 	}
 

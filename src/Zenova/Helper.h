@@ -3,5 +3,6 @@
 #include "Zenova/Common.h"
 
 namespace Zenova {
-	u32 start(void* platformArgs);
+	bool start(void* platformArgs);
+	u32 run();
 }

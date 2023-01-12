@@ -141,7 +141,7 @@ namespace Zenova {
             mKeys.push_back(enum_cast(bind));
         }
 
-        explicit operator bool() const {
+        bool hasKeys() const {
             return mKeys.size();
         }
     };
@@ -152,6 +152,7 @@ namespace Zenova {
         Keybind mGamepad;
 
         Input(ButtonCallback callback) : mCallback(callback) {}
+        Input(const Input& input) = default;
         Input(Input&& input) noexcept : mKeyboard(std::move(input.mKeyboard)),
             mGamepad(std::move(input.mGamepad)),
             mCallback(std::move(input.mCallback)) {}
@@ -193,9 +194,15 @@ namespace Zenova {
 
     class EXPORT InputManager {
     public:
-        static Input& addInput(const std::string& name, ButtonCallback callback);
-        static Input& addInput(const std::string& name, std::function<void(bool)> callback);
+        struct Button {
+            std::string rawName;
+            std::string buttonName;
+            std::string keyName;
+            Input input;
+        };
 
-        static const std::vector<std::pair<std::string, Input>>& getInputs();
+        static Input& addInput(const std::string& name, ButtonCallback callback);
+
+        static const std::vector<Button>& getInputs();
     };      
 }

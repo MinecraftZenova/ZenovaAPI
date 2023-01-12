@@ -26,11 +26,12 @@ namespace Zenova {
         void update();
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
-        const ProfileInfo& getLaunchedProfile();
         std::string getVersion();
 
     private:
         void refreshList();
         ProfileInfo getProfile(const std::string& name);
+
+        ProfileInfo _loadLaunchedProfile();
 	};
 }

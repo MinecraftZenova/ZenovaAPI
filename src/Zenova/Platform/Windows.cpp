@@ -27,8 +27,41 @@
 
 namespace Zenova::PlatformImpl {
 	inline void* CleanupVariables = nullptr;
+	inline FILE* console = nullptr;
+
+	void MessageRedirection() {
+		// Setup console logging
+		if (!AllocConsole()) {
+			Platform::ErrorPrinter();
+			return;
+		}
+
+		if (!console) {
+			// Handle std::cout, std::clog, std::cerr, std::cin
+			freopen_s(&console, "CONOUT$", "w", stdout);
+			freopen_s(&console, "CONOUT$", "w", stderr);
+			freopen_s(&console, "CONIN$", "r", stdin);
+
+			HANDLE hConOut = CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			HANDLE hConIn = CreateFileA("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
+			SetStdHandle(STD_ERROR_HANDLE, hConOut);
+			SetStdHandle(STD_INPUT_HANDLE, hConIn);
+
+			std::cout.clear();
+			std::clog.clear();
+			std::cerr.clear();
+			std::cin.clear();
+			std::wcout.clear();
+			std::wclog.clear();
+			std::wcerr.clear();
+			std::wcin.clear();
+		}
+	}
 
 	bool Init(void* platformArgs) {
+		MessageRedirection();
+
 		if (MH_Initialize() != MH_OK) {
 			logger.warn("MinHook failed to initialize, normal launch without hooks");
 			return false;
@@ -40,6 +73,14 @@ namespace Zenova::PlatformImpl {
 	}
 
 	void Destroy() {
+		if (!FreeConsole()) {
+			Platform::ErrorPrinter();
+		}
+
+		if (console) {
+			fclose(console);
+		}
+
 		MH_Uninitialize();
 
 		if (CleanupVariables) {
@@ -65,7 +106,9 @@ namespace Zenova {
 
 	inline std::unordered_map<void*, void**> hooks;
 
-	bool Platform::CreateHook(void* address, void* funcJump, void** funcTrampoline) {
+	bool Platform::CreateHook(void* address, void* funcJump, void* _funcTrampoline) {
+		auto funcTrampoline = reinterpret_cast<void**>(_funcTrampoline);
+
 		auto& existingHook = hooks.find(address);
 		if(existingHook != hooks.end()) {
 			auto tmp = *existingHook->second;

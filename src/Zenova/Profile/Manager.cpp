@@ -11,12 +11,12 @@ namespace Zenova {
     // todo: make launched const and ensure dataFolder is valid before getLaunchedProfile() 
     Manager::Manager() {
         dataFolder = Platform::GetZenovaFolder();
-
-        launched = getLaunchedProfile();
+        launched = _loadLaunchedProfile();
     }
 
     void Manager::init() {
         refreshList();
+        load(launched);
     }
     
     // doesn't unload current profile
@@ -63,25 +63,26 @@ namespace Zenova {
     }
 
     void Manager::load(const ProfileInfo& profile) {
-        if (profile) {
-            logger.info("Loading {} profile", profile.name);
-            current = profile;
+        if (!profile) {
+            // todo: should we dump the full ProfileInfo?
+            logger.error("Failed to load profile {}, versionId is empty", profile.name);
+            return;
+        }
 
-            mods.reserve(profile.modNames.size());
-            for (auto& modName : profile.modNames) {
-                ModInfo mod(modName);
+        logger.info("Loading {} profile", profile.name);
+        current = profile;
 
-                if (mod.mMod) {
-                    mods.push_back(std::move(mod));
-                }
-            }
+        mods.reserve(profile.modNames.size());
+        for (auto& modName : profile.modNames) {
+            ModInfo mod(modName);
 
-            for (auto& modinfo : mods) {
-                modinfo.mMod->Start();
+            if (mod.mMod) {
+                mods.push_back(std::move(mod));
             }
         }
-        else {
-            logger.error("Empty Profile");
+
+        for (auto& modinfo : mods) {
+            modinfo.mMod->Start();
         }
     }
 
@@ -91,26 +92,30 @@ namespace Zenova {
         load(profile);
     }
 
-    const ProfileInfo& Manager::getLaunchedProfile() {
-        static ProfileInfo info;
-
-        if (!info) {
-            json::Document prefDocument = JsonHelper::OpenFile(dataFolder + "\\preferences.json");
-            if (!prefDocument.IsNull()) {
-                std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
-                if (!profileHash.empty()) {
-                    json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
-                    if (!profilesDocument.IsNull()) {
-                        info = JsonHelper::FindMember(profilesDocument, profileHash);
-                    }
-                }
-            }
-        }
-
-        return info;
-    }
-
     std::string Manager::getVersion() {
         return launched.versionId;
+    }
+
+    // todo: should we stop execution for these errors?
+    ProfileInfo Manager::_loadLaunchedProfile() {
+        json::Document prefDocument = JsonHelper::OpenFile(dataFolder + "\\preferences.json");
+        if (prefDocument.IsNull()) {
+            logger.error("preferences.json is empty");
+            return {};
+        }
+        
+        std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
+        if (profileHash.empty()) {
+            logger.error("profileHash is empty");
+            return {};
+        }
+
+        json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
+        if (profilesDocument.IsNull()) {
+            logger.error("profiles.json is empty");
+            return {};
+        }
+
+        return JsonHelper::FindMember(profilesDocument, profileHash);
     }
 }

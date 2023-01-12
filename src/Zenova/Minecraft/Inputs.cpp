@@ -3,34 +3,32 @@
 #include "Zenova/Platform.h"
 
 namespace Zenova {
-    inline std::vector<std::pair<std::string, Input>> buttons;
+    inline std::vector<InputManager::Button> buttons;
+    static Input safeguard(nullptr);
 
-    Input& InputManager::addInput(const std::string& name, ButtonCallback input) {
-        static Input safeguard(input);
+    Input& InputManager::addInput(const std::string& name, ButtonCallback callback) {
+        auto it = std::find_if(buttons.begin(), buttons.end(),
+            [&name](const Button& elem) {
+                return name == elem.rawName;
+            });
 
-        //I'm open to a better formatting for this
-        if (std::find_if(
-            buttons.begin(), buttons.end(),
-            [&name](const std::pair<std::string, Input>& elem) {
-                return name == elem.first;
-            }) == buttons.end()) {
-            return buttons.emplace_back(std::make_pair(name, Input(input))).second;
-        }
-        else {
+        if (it != buttons.end()) {
             Zenova_Warn("Input {} already exists", name);
+            // this is intentional, we don't want the problematic mod to change binds
             return safeguard;
         }
+
+        Button newButton = {
+            name,
+            "button." + name,
+            "key." + name,
+            Input(callback)
+        };
+        
+        return buttons.emplace_back(newButton).input;
     }
 
-    Input& InputManager::addInput(const std::string& name, std::function<void(bool)> input) {
-        static std::function<void(bool)> safeguard(input);
-
-        return addInput(name, [](bool pressed, IClientInstance&) {
-            safeguard(pressed);
-            });
-    }
-
-    const std::vector<std::pair<std::string, Input>>& InputManager::getInputs() {
+    const std::vector<InputManager::Button>& InputManager::getInputs() {
         return buttons;
     }
 }
