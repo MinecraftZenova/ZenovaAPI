@@ -46,6 +46,14 @@ namespace Zenova {
 	}
 
 	u32 run() {
+		using namespace std::chrono_literals;
+
+		// a bit hacky but wait for static variables to be initialized
+		// todo: hook into minecraft's main and signal this thread to unblock?
+		std::this_thread::sleep_for(2s);
+
+		manager.run();
+		
 		while (true) {
 			manager.update();
 		}

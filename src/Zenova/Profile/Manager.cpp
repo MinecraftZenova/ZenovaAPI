@@ -44,6 +44,12 @@ namespace Zenova {
         return ProfileInfo();
     }
 
+    void Manager::run() {
+        for (auto& modinfo : mods) {
+            modinfo.mMod->Start();
+        }
+    }
+
     void Manager::update() {
         for(auto& modinfo : mods) {
             modinfo.mMod->Update();
@@ -79,10 +85,6 @@ namespace Zenova {
             if (mod.mMod) {
                 mods.push_back(std::move(mod));
             }
-        }
-
-        for (auto& modinfo : mods) {
-            modinfo.mMod->Start();
         }
     }
 

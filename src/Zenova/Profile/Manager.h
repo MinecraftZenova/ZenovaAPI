@@ -23,6 +23,7 @@ namespace Zenova {
 
         Manager();
         void init();
+        void run();
         void update();
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
