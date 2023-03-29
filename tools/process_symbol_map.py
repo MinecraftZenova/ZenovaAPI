@@ -86,8 +86,7 @@ class Map:
     # 0 = var_name, 1 = mangled_name (sorry)
     symbol_list = []
     symbol_dict = {}
-    vtable_list = []
-    processed_vtables = []
+    vtables = {}
     vdtor_list = []
     var_list = []
     var_dict = {"": []}
@@ -98,9 +97,12 @@ class Map:
         for key in reader:
             self.__parse(key, reader[key])
 
+    def __unsupported(self, info: str):
+        print(f"Unsupported API: {info}")
+
+
     def __addr_helper(addr: str) -> str:
-        if addr == "" or len(addr) < 2:
-            # todo: throw an error of sort?
+        if addr == "" or addr == "0x0" or len(addr) < 2:
             return ""
         
         if addr[:2] == "0x":
@@ -125,125 +127,150 @@ class Map:
             # ex: Sigscan("\x40\x53\x00", "xx?")
             return f"{sigtype}(\"{sig}\", \"{mask}\")"
 
-    def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
-        self.symbol_dict.setdefault(version, []).append({
-            "name": name,
-            "mangled_name": mangled_name,
-            # to be used directly in the reinterpret_cast call
-            "address": Map.__addr_helper(addr),
-        })
-
     def __parse(self, key: str, value):
         match key:
             case "vtable":
-                for obj in value:
-                    self.vtable_list.append({
-                        "name": obj["name"], 
-                        "parent": obj.get("parent", ""), 
-                        "address": obj.get("address", ""), 
-                        "functions": obj.get("functions", []), 
-                        "overload": obj.get("overload", "null")
-                    })
-
-                    offset = 0
-                    vtable = self.vtable_list[-1]
-                    for dtor in vtable["functions"]:
-                        if dtor[:3] == "??1":
-                            self.vdtor_list.append({
-                                "vtable": vtable["name"],
-                                "name": Windows.mangle_to_var(dtor),
-                                "mangled_name": dtor,
-                                "address": '0x{:X}'.format(int(vtable["address"], 16) + (offset * 8))
-                            })
-                            vtable["functions"][offset] = ""
-                        offset += 1
+                self.__parse_vtables(value)
 
             case "functions":
-                for obj in value:
-                    mangled_name = obj["name"]
-                    name = Windows.mangle_to_var(mangled_name)
-                    addr = obj["address"]
-
-                    self.symbol_list.append([name, mangled_name])
-
-                    if type(addr) is str:
-                        self.__add_func("default", name, mangled_name, addr)
-                    elif type(addr) is dict:
-                        for k, v in addr.items():
-                            self.__add_func(k, name, mangled_name, v)
+                self.__parse_funcs(value)
 
             case "variables":
-                var_count = 0
-                for var_name in value.keys():
-                    self.var_list.append(var_name)
-                    addr = value[var_name]
-                    if type(addr) is str:
-                        self.var_dict[""].append({
-                            "offset": var_count,
-                            "address": addr
-                        })
-                    elif type(addr) is dict:
-                        for ver in addr:
-                            self.var_dict[ver] = self.var_dict.get(key, []) + [{
-                                "offset": var_count,
-                                "address": addr[ver]
-                            }]
-                    var_count += 1
+                self.__parse_variables(key, value)
 
             case "includes":
                 for strs in value:
                     self.include_list.append(strs)
 
             case _:
-                print(f"Unsupported api: {key}")
+                self.__unsupported(key)
 
-    # todo: rewrite this
-    def process_vtable(self, vtable: dict):
-        vtable_out = next((x for x in self.processed_vtables if vtable["name"] == x["name"]), {})
-        if not vtable_out:
-            vtable_out["name"] = vtable["name"]
-            vtable_out["functions_out"] = []
-            vtable_out["functions_in"] = []
-            vtable_out["parents"] = []
-            i = 0
-            vtable_parent_str = vtable["parent"]
-            vtable_parent_out = {}
-            if vtable_parent_str:
-                vtable_parent = next((x for x in self.vtable_list if x["name"] == vtable_parent_str), {})
-                if vtable_parent:
-                    vtable_parent_out = self.process_vtable(vtable_parent)
-                    vtable_out["parents"].append(vtable_parent_out)
-                    vtable_out["parents"].extend(vtable_parent_out["parents"])
-            for a in vtable["functions"]:
-                func_name_base = a.replace(vtable["name"] + "@@", "@@", 1)
-                if len(vtable_out["parents"]) > 0:
-                    for parent in vtable_out["parents"]:
-                        func_name_base = re.sub('(@@@.*)' + parent["name"] + '@@', r'\g<1>1@', func_name_base)
-                    for b in vtable_parent_out["functions_in"][i:]:
-                        if func_name_base == b[0]:
-                            break
-                        vtable_out["functions_in"].append([b[0], i])
-                        i += 1
-                vtable_out["functions_in"].append([func_name_base, i])
-                if a:
-                    vtable_out["functions_out"].append([a, i])
-                i += 1
-        self.processed_vtables.append(vtable_out)
-        return vtable_out
+    # todo: add support for multi inheritance vtables, should be easy with new implementation
+    def __process_vtable(self, name: str) -> list:
+        vtable = self.vtables[name]
+        
+        if "noclass_funcs" in vtable:
+            return vtable["noclass_funcs"]
+
+        vtable["noclass_funcs"] = []
+
+        has_parent = vtable["parent"] != "" 
+
+        if has_parent:
+            vtable["noclass_funcs"] = self.__process_vtable(vtable["parent"]).copy()
+
+        for index, func in enumerate(vtable["functions"]):
+            if func == "":
+                vtable["noclass_funcs"].append("")
+                vtable["functions"][index] = [ "", 0 ]
+            elif func[:3] == "??1":
+                self.vdtor_list.append({
+                    "vtable": name,
+                    "name": Windows.mangle_to_var(func),
+                    "mangled_name": func,
+                    "address": '0x{:X}'.format(int(vtable["address"], 16) + (index * 8))
+                })
+                vtable["noclass_funcs"].append("")
+                vtable["functions"][index] = [ "", 0 ]
+            else:
+                noclass_func = func.replace(name + "@@", "@@", 1)
+                offset = index
+
+                if has_parent:
+                    # really hacky workaround for dealing with backreferences in msvc symbols
+                    # todo: roll basic (de?)mangler that replaces these backreferences with the proper full name
+                    # https://github.com/microsoft/checkedc-llvm/blob/master/lib/Demangle/MicrosoftDemangle.cpp
+                    parent_vtable = vtable
+
+                    while parent_vtable["parent"] != "":
+                        parent_str = parent_vtable["parent"]
+                        parent_vtable = self.vtables[parent_str]
+                        noclass_func = re.sub('(@@@.*)' + parent_str + '@@', r'\g<1>1@', noclass_func)
+
+                    parent_funcs = vtable["noclass_funcs"]
+                    offset = parent_funcs.index(noclass_func) if noclass_func in parent_funcs else len(parent_funcs)
+
+                # append if not in the current list
+                if offset >= len(vtable["noclass_funcs"]):
+                    vtable["noclass_funcs"].append(noclass_func)
+
+                vtable["functions"][index] = [ func, offset ]
+
+        return vtable["noclass_funcs"]
+
+    def __parse_vtables(self, value):
+        for obj in value:
+            self.vtables[obj["name"]] = {
+                "parent": obj.get("parent", ""), 
+                "address": obj.get("address", ""), 
+                "functions": obj.get("functions", [])
+            }
+
+        for vtable in self.vtables.keys():
+            self.__process_vtable(vtable)
+
+
+    def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
+        full_addr = Map.__addr_helper(addr)
+
+        if not full_addr:
+            self.__unsupported(f"Function {mangled_name} uses invalid address")
+            return
+
+        self.symbol_dict.setdefault(version, []).append({
+            "name": name,
+            "mangled_name": mangled_name,
+            # used directly in the reinterpret_cast call
+            "address": full_addr,
+        })
+
+    def __parse_funcs(self, value):
+        for obj in value:
+            mangled_name = obj["name"]
+            name = Windows.mangle_to_var(mangled_name)
+            addr = obj["address"]
+
+            if type(addr) is str:
+                self.__add_func("default", name, mangled_name, addr)
+            elif type(addr) is dict:
+                for k, v in addr.items():
+                    self.__add_func(k, name, mangled_name, v)
+            else:
+                self.__unsupported(f"address in {mangled_name} is an unsupported type")
+                continue
+
+            self.symbol_list.append([name, mangled_name])
+
+    def __parse_variables(self, key, value):
+        var_count = 0
+        for var_name in value.keys():
+            self.var_list.append(var_name)
+            addr = value[var_name]
+            if type(addr) is str:
+                self.var_dict[""].append({
+                    "offset": var_count,
+                    "address": addr
+                })
+            elif type(addr) is dict:
+                for ver in addr:
+                    self.var_dict[ver] = self.var_dict.get(key, []) + [{
+                        "offset": var_count,
+                        "address": addr[ver]
+                    }]
+            var_count += 1
 
     def generate_header(self, out: Output):
         #*.hxx
         out.header("")
         out.header("#pragma once")
-        if len(self.symbol_list) > 0 or len(self.vtable_list) > 0:
+        if len(self.symbol_list) > 0 or len(self.vtables) > 0:
             out.header("")
             out.header("extern \"C\" {")
             for name, _ in self.symbol_list:
                 if name:
                     out.header("\textern void* " + name + "_ptr;")
-            for a in self.vtable_list:
-                if a["name"]:
-                    out.header("\textern void* " + a["name"] + "_vtable;")
+            for name in self.vtables.keys():
+                out.header("\textern void* " + name + "_vtable;")
             for a in self.vdtor_list:
                 if a["name"]:
                     out.header("\textern void* " + a["name"] + "_ptr;")
@@ -269,7 +296,7 @@ class Map:
         out.cxx("using namespace Zenova::Hook;")
         out.cxx("")
 
-        # use lambdas to initialize the global variables (allows for "const" initialization)
+        # uses lambdas to initialize the global variables (allows for "const" initialization)
         if self.var_list:
             var_arr_str = "std::array<uintptr_t, " + str(len(self.var_list)) + ">"
             out.cxx("namespace {")
@@ -278,7 +305,6 @@ class Map:
             out.cxx("\t" + var_arr_str + " vars{};") # should this be allocated on the heap?
             out.cxx("")
 
-            # reimplement FindVariable when it's a more stable concept
             for var in self.var_dict[""]:
                 offset, addr = var.values()
                 out.cxx("\tvars[" + str(offset) + "] = SlideAddress(" + str(addr) + ");")
@@ -312,9 +338,8 @@ class Map:
         for name, _ in self.symbol_list:
             if name:
                 out.cxx("void* " + name + "_ptr;")
-        for a in self.vtable_list:
-            if a["name"]:
-                out.cxx("void* " + a["name"] + "_vtable;")
+        for name in self.vtables.keys():
+            out.cxx("void* " + name + "_vtable;")
         for a in self.vdtor_list:
             if a["name"]:
                 out.cxx("void* " + a["name"] + "_ptr;")
@@ -343,14 +368,11 @@ class Map:
                         
                 out.cxx("\t}")
 
-        for a in self.vtable_list:
-            name = a["name"]
+        for name, a in self.vtables.items():
             address = a["address"]
 
             if type(address) == str and address != "":
                 out.cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address + "));")
-            if a["overload"] == "always" or (a["overload"] == "null" and address == ""):
-                out.cxx("\t" + name + "_vtable = reinterpret_cast<void*>(FindVtable(\"" + name + "\"));")
 
         for a in self.vdtor_list:
             out.cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(GetRealDtor(SlideAddress(" + a["address"] + ")));")
@@ -381,8 +403,8 @@ class Windows:
             out.asm("extern " + name + "_ptr")
         for a in map.vdtor_list:
             out.asm("extern " + a["name"] + "_ptr")
-        for a in map.vtable_list:
-            out.asm("extern " + a["name"] + "_vtable")
+        for name in map.vtables.keys():
+            out.asm("extern " + name + "_vtable")
         out.asm("")
         out.asm("SECTION .text")
         for var_name, mangled_name in map.symbol_list:
@@ -393,13 +415,13 @@ class Windows:
             out.asm("global " + a["mangled_name"])
             out.asm(a["mangled_name"] + ":")
             out.asm("\tjmp qword [rel " + a["name"] + "_ptr]")
-        for vtable in map.vtable_list:
-            vtable_out = map.process_vtable(vtable)
-            for a in vtable_out["functions_out"]:
-                out.asm("global " + a[0])
-                out.asm(a[0] + ":")
-                out.asm("\tmov " + reg + ", [rel " + vtable_out["name"] + "_vtable]")
-                out.asm("\tjmp [" + reg + "+" + str(a[1] * pointer_size) + "]")
+        for name, vtable in map.vtables.items():
+            for symbol, offset in vtable["functions"]:
+                if symbol != "":
+                    out.asm("global " + symbol)
+                    out.asm(symbol + ":")
+                    out.asm("\tmov " + reg + ", [rel " + name + "_vtable]")
+                    out.asm("\tjmp [" + reg + "+" + str(offset * pointer_size) + "]")
 
     def generate_init(self, out: Output):
         out.cxx("")

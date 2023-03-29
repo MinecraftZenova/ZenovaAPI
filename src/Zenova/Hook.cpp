@@ -114,28 +114,36 @@ namespace Zenova {
 			return successful;
 		}
 
+		bool VfuncHelper(size_t& outOffset, void* function) {
+			u8* thunkFunction = reinterpret_cast<u8*>(function);
+			if (*thunkFunction == 0xe9) {
+				function = reinterpret_cast<void*>(thunkFunction + (*reinterpret_cast<u32*>(thunkFunction + 1)) + 5);
+			}
+
+			u8* u8Function = reinterpret_cast<u8*>(function) + 3;
+			if (*u8Function == 0xff) {
+				u8 modrm = *(u8Function + 1);
+				if (modrm == 0x60) {
+					outOffset = *reinterpret_cast<u8*>(u8Function + 2);
+				}
+				else if (modrm == 0xa0) {
+					outOffset = *reinterpret_cast<u32*>(u8Function + 2);
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
 		bool Create(void* vtable, void* function, void* funcJump, void* funcTrampoline, const char* funcName) {
 			bool successful = false;
 
 			if(Platform::Type == PlatformType::Windows) {
-				u8* thunkFunction = reinterpret_cast<u8*>(function);
-				if (*thunkFunction == 0xe9) {
-					function = reinterpret_cast<void*>(thunkFunction + (*reinterpret_cast<u32*>(thunkFunction + 1)) + 5);
-				}
-
-				u8* u8Function = reinterpret_cast<u8*>(function) + 3;
-
-				if(*u8Function == 0xff) {
+				size_t offset;
+				if (VfuncHelper(offset, function)) {
 					u8* offsetVtable = reinterpret_cast<u8*>(vtable);
-					void* address = nullptr;
-
-					u8 modrm = *(u8Function + 1);
-					if (modrm == 0x60) {
-						address = *reinterpret_cast<void**>(offsetVtable + *reinterpret_cast<u8*>(u8Function + 2));
-					}
-					else if (modrm == 0xA0) {
-						address = *reinterpret_cast<void**>(offsetVtable + *reinterpret_cast<u32*>(u8Function + 2));
-					}
+					void* address = *reinterpret_cast<void**>(offsetVtable + offset);
 
 					successful = Platform::CreateHook(address, funcJump, funcTrampoline);
 				}
@@ -146,6 +154,39 @@ namespace Zenova {
 			}
 
 			return successful;
+		}
+
+		bool ReplaceVtable(void* vtable, size_t offset, void* funcJump, void* funcTrampoline, const char* funcName) {
+			bool successful = false;
+
+			void** func = reinterpret_cast<void**>(reinterpret_cast<u8*>(vtable) + (offset * sizeof(void*)));
+
+			u32 oldProtect = Platform::SetPageProtect(func, sizeof(void*), ProtectionFlags::Execute | ProtectionFlags::Write);
+
+			if (funcTrampoline)
+				*reinterpret_cast<void**>(funcTrampoline) = *func;
+
+			*func = funcJump;
+			successful = true;
+
+			Platform::SetPageProtect(func, sizeof(void*), oldProtect);
+
+			if (!successful) {
+				Zenova_Info("VReplace failed with function {}", funcName);
+			}
+
+			return successful;
+		}
+
+		bool ReplaceVtable(void* vtable, void* function, void* funcJump, void* funcTrampoline, const char* funcName) {
+			bool successful = false;
+			
+			size_t offset;
+			if (VfuncHelper(offset, function)) {
+				return ReplaceVtable(vtable, offset / sizeof(void*), funcJump, funcTrampoline, funcName);
+			}
+
+			return false;
 		}
 	}
 }

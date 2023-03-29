@@ -46,12 +46,21 @@ namespace Zenova {
 		bool Create(void* vtable, T function, _ZENOVA_HOOK_CREATE_EXTRA) {
 			return Create(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
 		}
+
+		EXPORT bool ReplaceVtable(void* vtable, size_t offset, _ZENOVA_HOOK_CREATE_EXTRA);
+		EXPORT bool ReplaceVtable(void* vtable, void* function, _ZENOVA_HOOK_CREATE_EXTRA);
+
+		template <typename T,
+			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
+			bool ReplaceVtable(void* vtable, T function, _ZENOVA_HOOK_CREATE_EXTRA) {
+			return ReplaceVtable(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
+		}
 	};
 }
 
 // defines the cast to choose an overloaded member function
-// ex: Zenova_OCast(void, Test, int)(&Test::overload); chooses void Test::overload(int)
-#define Zenova_OCast(r, c, ...) static_cast<r (c::*)(__VA_ARGS__)>
+// ex: Zenova_OCast(void, Test, (int))(&Test::overload); chooses void Test::overload(int)
+#define Zenova_OCast(r, c, p, ...) static_cast<r (c::*)p __VA_ARGS__>
 
 // ex: Zenova_Hook(Test::func, &func, &_func);
 #define Zenova_Hook(function, hook, trampoline) \
@@ -60,3 +69,6 @@ namespace Zenova {
 // ex: Zenova_VHook(Test, vfunc, &func, &_func); hooks Test::Vfunc
 #define Zenova_VHook(classname, function, hook, trampoline, ...) \
 	Zenova::Hook::Create(classname##_vtable, (__VA_ARGS__(&classname::function)), hook, trampoline, #classname "::" #function)
+
+#define Zenova_VReplace(classname, function, hook, trampoline, ...) \
+	Zenova::Hook::ReplaceVtable(classname##_vtable, (__VA_ARGS__(&classname::function)), hook, trampoline, #classname "::" #function)

@@ -33,10 +33,6 @@ namespace Zenova {
 			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
 			logger.info("Minecraft's Folder: {}", Platform::GetMinecraftFolder());
 
-			// todo: currently running into a race issue with this
-			// if possible figure out how to pause the minecraft loading until everything is initialized
-			// (might be fixed with separating the start into 2 functions but if possible I'd like to 
-			// ensure this isn't a problem again)
 			createResourceHooks();
 			createInputHooks();
 

@@ -17,8 +17,6 @@ namespace Zenova {
 	}
 
 	void addPacksToStack(ResourcePackRepository& repo, ResourcePackStack& tempStack, PackType type) {
-		Zenova::Platform::DebugPause();
-
 		for (auto& pack : PackManager::getPacks(type)) {
 			lambda::Pack lp{ repo, tempStack };
 			lp.addFromUUID({ mce::UUID::fromString(pack.uuid),
