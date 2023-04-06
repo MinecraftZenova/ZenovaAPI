@@ -20,22 +20,14 @@
 	#define FSIG __func__
 #endif
 
-#define NO_COPY_OR_MOVE(Class) \
-	Class(const Class&) = delete; \
-	Class(Class&&) = delete; \
-	Class& operator=(const Class&) = delete; \
-	Class& operator=(Class&&) = delete
-
 namespace Zenova {
 	using exception = std::runtime_error;
 
-	//unsigned int types
 	using u8 = uint8_t;
 	using u16 = uint16_t;
 	using u32 = uint32_t;
 	using u64 = uint64_t;
 
-	//signed int types
 	using i8 = int8_t;
 	using i16 = int16_t;
 	using i32 = int32_t;

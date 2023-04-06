@@ -4,7 +4,16 @@
 #include "Zenova/Mod.h"
 #include "Zenova/Globals.h"
 #include "Zenova/JsonHelper.h"
+#include "Zenova/PackManager.h"
 #include "Zenova/Utils/Utils.h"
+
+#define CALL_MOD_FUNC(mod, func, ...) \
+    if (mod.mHandle) {  \
+        auto modFunc = reinterpret_cast<decltype(&func)>(Platform::GetModuleFunction(mod.mHandle, #func)); \
+        if (modFunc) { \
+            modFunc(__VA_ARGS__); \
+        } \
+    }
 
 namespace Zenova {
     // this currently runs (and has to) before initcpp{var_addrs}
@@ -14,19 +23,26 @@ namespace Zenova {
         launched = _loadLaunchedProfile();
     }
 
+    Manager::~Manager() {
+        // todo: verify this runs before ModInfo::~ModInfo
+        for (auto& modinfo : mods) {
+            CALL_MOD_FUNC(modinfo, ModStop);
+        }
+    }
+
     void Manager::init() {
         refreshList();
         load(launched);
     }
-    
+
     // doesn't unload current profile
     void Manager::refreshList() {
         profiles.clear();
 
         json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
-        if(!profilesDocument.IsNull() && profilesDocument.IsArray()) {
-            for(auto& profile : profilesDocument.GetArray()) {
-                if(launched.versionId == JsonHelper::FindString(profile, "versionId")) {
+        if (!profilesDocument.IsNull() && profilesDocument.IsArray()) {
+            for (auto& profile : profilesDocument.GetArray()) {
+                if (launched.versionId == JsonHelper::FindString(profile, "versionId")) {
                     profiles.push_back(profile);
                 }
             }
@@ -34,9 +50,9 @@ namespace Zenova {
     }
 
     ProfileInfo Manager::getProfile(const std::string& name) {
-        auto profileIter = std::find_if(profiles.begin(), profiles.end(), 
+        auto profileIter = std::find_if(profiles.begin(), profiles.end(),
             [&name](const ProfileInfo& p) { return p.name == name; });
-        if(profileIter != profiles.end()) {
+        if (profileIter != profiles.end()) {
             return *profileIter;
         }
 
@@ -46,16 +62,12 @@ namespace Zenova {
 
     void Manager::run() {
         for (auto& modinfo : mods) {
-            modinfo.mMod->Start();
+            CALL_MOD_FUNC(modinfo, ModStart);
         }
     }
 
     void Manager::update() {
-        for(auto& modinfo : mods) {
-            modinfo.mMod->Update();
-        }
-
-        // todo: I should probably hook into minecraft's global tick function
+        // todo: hook into minecraft's global tick function
         namespace chrono = std::chrono;
         using tick = chrono::duration<int, std::ratio<1, 20>>;
 
@@ -63,7 +75,7 @@ namespace Zenova {
             tickTimer = clock::now();
 
             for (auto& modinfo : mods) {
-                modinfo.mMod->Tick();
+                CALL_MOD_FUNC(modinfo, ModTick)
             }
         }
     }
@@ -80,10 +92,23 @@ namespace Zenova {
 
         mods.reserve(profile.modNames.size());
         for (auto& modName : profile.modNames) {
-            ModInfo mod(modName);
+            logger.info("Loading {}", modName);
 
-            if (mod.mMod) {
+            // todo: verify path
+            std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
+            ModInfo mod(folder);
+
+            if (mod.mHandle) {
+                ModContext ctx = { folder };
+                CALL_MOD_FUNC(mod, ModLoad, ctx);
+
+                PackManager::addMod(folder);
+
                 mods.push_back(std::move(mod));
+            }
+            else {
+                logger.warn("Failed to load {}", mod.mName);
+                Platform::ErrorPrinter();
             }
         }
     }
@@ -98,6 +123,10 @@ namespace Zenova {
         return launched.versionId;
     }
 
+    size_t Manager::getModCount() {
+        return current.modNames.size();
+    }
+
     // todo: should we stop execution for these errors?
     ProfileInfo Manager::_loadLaunchedProfile() {
         json::Document prefDocument = JsonHelper::OpenFile(dataFolder + "\\preferences.json");
@@ -105,7 +134,7 @@ namespace Zenova {
             logger.error("preferences.json is empty");
             return {};
         }
-        
+
         std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
         if (profileHash.empty()) {
             logger.error("profileHash is empty");

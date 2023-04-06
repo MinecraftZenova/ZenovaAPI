@@ -6,21 +6,22 @@
 
 #define MOD_FUNCTION extern "C" __declspec(dllexport)
 
-namespace Zenova {
-	class EXPORT Mod {
-	protected:
-		struct Context {
-			std::string folder;
-		} ctx;
+struct EXPORT ModContext {
+	std::string folder;
+};
 
-		Mod();
-		NO_COPY_OR_MOVE(Mod);
+// Define any/all of these functions
 
-	public:
-		virtual ~Mod() = default;
-		virtual void Start() = 0;
-		virtual void Update() = 0;
-		virtual void Tick() = 0;
-		virtual void Stop() = 0;
-	};
-}
+// Called when the Mod is loaded
+MOD_FUNCTION void ModLoad(ModContext& ctx);
+
+// Called after Minecraft main
+// todo: implement above (currently called after ~2 seconds)
+MOD_FUNCTION void ModStart();
+
+// Called every Minecraft tick (must be in world)
+// todo: implement above (currently calls every 1/20th second)
+MOD_FUNCTION void ModTick();
+
+// Called on clean up/exit
+MOD_FUNCTION void ModStop();

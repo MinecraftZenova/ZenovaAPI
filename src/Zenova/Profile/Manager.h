@@ -22,12 +22,14 @@ namespace Zenova {
         std::string dataFolder;
 
         Manager();
+        ~Manager();
         void init();
         void run();
         void update();
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
         std::string getVersion();
+        size_t getModCount();
 
     private:
         void refreshList();
