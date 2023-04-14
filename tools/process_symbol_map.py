@@ -91,6 +91,7 @@ class Map:
     var_list = []
     var_dict = {"": []}
     include_list = []
+    var_count = 0
 
     def parse(self, file):
         reader = json.load(file)
@@ -242,22 +243,21 @@ class Map:
             self.symbol_list.append([name, mangled_name])
 
     def __parse_variables(self, key, value):
-        var_count = 0
         for var_name in value.keys():
             self.var_list.append(var_name)
             addr = value[var_name]
             if type(addr) is str:
                 self.var_dict[""].append({
-                    "offset": var_count,
+                    "offset": self.var_count,
                     "address": addr
                 })
             elif type(addr) is dict:
                 for ver in addr:
                     self.var_dict[ver] = self.var_dict.get(key, []) + [{
-                        "offset": var_count,
+                        "offset": self.var_count,
                         "address": addr[ver]
                     }]
-            var_count += 1
+            self.var_count += 1
 
     def generate_header(self, out: Output):
         #*.hxx
@@ -277,7 +277,6 @@ class Map:
             out.header("}")
         out.header("")
         out.header("void InitBedrockPointers();")
-
 
     def generate_init(self, out: Output):
         self.generate_header(out)
