@@ -228,6 +228,10 @@ class Map:
     def __parse_funcs(self, value):
         for obj in value:
             mangled_name = obj["name"]
+            if any(item[1] == mangled_name for item in self.symbol_list):
+                print(f"Found duplicate symbol: {mangled_name}")
+                continue
+
             name = Windows.mangle_to_var(mangled_name)
             addr = obj["address"]
 
