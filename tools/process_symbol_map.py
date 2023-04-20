@@ -102,7 +102,7 @@ class Map:
         print(f"Unsupported API: {info}")
 
 
-    def __addr_helper(addr: str) -> str:
+    def __addr_helper(addr: str, name: str) -> str:
         if addr == "" or addr == "0x0" or len(addr) < 2:
             return ""
         
@@ -125,8 +125,8 @@ class Map:
 
             sigtype = "SigscanCall" if(byteList[0] == "E8" or byteList[0] == "E9") else "Sigscan"
 
-            # ex: Sigscan("\x40\x53\x00", "xx?")
-            return f"{sigtype}(\"{sig}\", \"{mask}\")"
+            # ex: Sigscan("\x40\x53\x00", "xx?", "mangled_func_name")
+            return f"{sigtype}(\"{sig}\", \"{mask}\", \"{name}\")"
 
     def __parse(self, key: str, value):
         match key:
@@ -212,7 +212,7 @@ class Map:
 
 
     def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
-        full_addr = Map.__addr_helper(addr)
+        full_addr = Map.__addr_helper(addr, mangled_name)
 
         if not full_addr:
             self.__unsupported(f"Function {mangled_name} uses invalid address")
