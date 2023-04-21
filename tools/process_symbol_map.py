@@ -358,6 +358,18 @@ class Map:
             for ver, symbols in self.symbol_dict.items():
                 if ver == "default":
                     out.cxx("\telse {")
+                elif ">>>" in ver:
+                    versions = ver.split(">>>")
+                    fromVer = versions[0].replace(" ", "")
+                    toVer = versions[1].replace(" ", "")
+                    out.cxx(f"\t{prefix}if (versionId >= Zenova::Version(\"{fromVer}\") && versionId <= Zenova::Version(\"{toVer}\")) {{")
+                    prefix = "else "
+                elif "<<<" in ver:
+                    versions = ver.split("<<<")
+                    toVer = versions[0].replace(" ", "")
+                    fromVer = versions[1].replace(" ", "")
+                    out.cxx(f"\t{prefix}if (versionId >= Zenova::Version(\"{fromVer}\") && versionId <= Zenova::Version(\"{toVer}\")) {{")
+                    prefix = "else "
                 else:
                     out.cxx(f"\t{prefix}if (versionId == \"{ver}\") {{")
                     prefix = "else "

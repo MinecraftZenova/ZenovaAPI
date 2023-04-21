@@ -25,14 +25,14 @@
             "name": "?assignDefaultMapping@RemappingLayout@@QEAAX$$QEAV?$vector@VKeymapping@@V?$allocator@VKeymapping@@@std@@@std@@@Z",
             "address": {
                 "1.16.100.4": "0x083FDD0",
-                "default": "40 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 60 48 C7 45 ? ? ? ? ? 48 89 9C 24 ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 F8 4C 8B F9 48 89 4D C8 48 8D 71 20 48 3B F2 74 0F 4C 8B 42 08 48 8B 12 48 8B CE" 
+                "default": "40 55 56 57 41 54 41 55 41 56 41 57 48 8B EC 48 83 EC 60 48 C7 45 ? ? ? ? ? 48 89 9C 24 ? ? ? ? 48 8B 05 ? ? ? ? 48 33 C4 48 89 45 F8 4C 8B F9 48 89 4D C8 48 8D 71 20 48 3B F2 74 0F 4C 8B 42 08 48 8B 12 48 8B CE"
             }
         },
         {
             "name": "?_populateKeyboardDefaults@VanillaClientInputMappingFactory@@QEAAXAEAVRemappingLayout@@@Z",
             "address": {
                 "1.16.100.4": "0x1E31440",
-                "default": "E8 ? ? ? ? 90 BE ? ? ? ? 48 85 DB 74 2A 8B C6 F0 0F C1 43 ? 83 F8 01 75 1E 48 8B 03 48 8B CB FF 10 8B C6 F0 0F C1 43 ? 83 F8 01 75 0A 48 8B 03 48 8B CB FF 50 08 90 49 8B 96 ? ? ? ? 48 8B 5A 18" 
+                "default": "E8 ? ? ? ? 90 BE ? ? ? ? 48 85 DB 74 2A 8B C6 F0 0F C1 43 ? 83 F8 01 75 1E 48 8B 03 48 8B CB FF 10 8B C6 F0 0F C1 43 ? 83 F8 01 75 0A 48 8B 03 48 8B CB FF 50 08 90 49 8B 96 ? ? ? ? 48 8B 5A 18"
             }
         },
         {

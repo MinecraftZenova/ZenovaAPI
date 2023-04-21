@@ -22,7 +22,6 @@
 
 namespace Zenova {
 	bool start(void* platformArgs) {
-		Platform::DebugPause();
 
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if (run) {
