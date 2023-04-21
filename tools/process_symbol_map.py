@@ -248,7 +248,7 @@ class Map:
     def __parse_variables(self, key, value):
         for var_name in value.keys():
             if var_name in self.var_list:
-                self.__unsupported(f"Found duplicate variable: '{var_name}'")
+                print(f"Found duplicate variable: '{var_name}'")
                 continue
 
             self.var_list.append(var_name)
