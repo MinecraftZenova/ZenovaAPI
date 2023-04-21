@@ -53,7 +53,7 @@ namespace Zenova {
 			return true;
 		}
 
-		//doesn't work for inlined dtors, need to put an error message when there's a vtable load at the start
+		// doesn't work for inlined dtors, need to put an error message when there's a vtable load at the start
 		uintptr_t GetRealDtor(uintptr_t virtualDtor) {
 			virtualDtor = *reinterpret_cast<uintptr_t*>(virtualDtor); 
 			u8* iaddr = reinterpret_cast<u8*>(virtualDtor);
@@ -61,12 +61,13 @@ namespace Zenova {
 				return virtualDtor + 0x14 + *reinterpret_cast<int32_t*>(iaddr + 0x10);
 			}
 
-			Zenova_Warn("0x{:x} is not a valid virtual dtor, dtor maybe inlined?", virtualDtor);
+			Zenova_Error("0x{:x} is not a valid virtual dtor, dtor might be inlined?", virtualDtor);
 			return 0;
 		}
 
-		uintptr_t Sigscan(const char* sig, const char* mask) {
-			auto size = Platform::GetMinecraftSize();
+		// todo: figure out if we need to verify that all regions can be read
+		uintptr_t Sigscan(const char* sig, const char* mask, const char* funcName) {
+			uintptr_t size = Platform::GetMinecraftSize() - std::strlen(mask);
 
 			for (size_t i = 0; i < size; ++i) {
 				uintptr_t iaddr = SlideAddress(i);
@@ -75,21 +76,25 @@ namespace Zenova {
 				}
 			}
 
-			return 0;
-		}
-
-		uintptr_t SigscanCall(const char* sig, const char* mask) {
-			auto size = Platform::GetMinecraftSize();
-
-			for (size_t i = 0; i < size; ++i) {
-				uintptr_t iaddr = SlideAddress(i);
-				if (MemCompare(reinterpret_cast<const char*>(iaddr), sig, mask)) {
-					uintptr_t offset = iaddr + 1;
-					return offset + 4 + *reinterpret_cast<int32_t*>(offset);
-				}
+			if (funcName) {
+				Zenova_Error("Sigscan failed with function: {}", funcName);
+			}
+			else {
+				Zenova_Error("Sigscan failed with sig: {}", sig);
 			}
 
 			return 0;
+		}
+
+		uintptr_t SigscanCall(const char* sig, const char* mask, const char* funcName) {
+			uintptr_t addr = Sigscan(sig, mask, funcName);
+
+			if (addr != 0) {
+				uintptr_t offset = addr + 1;
+				addr = offset + 4 + *reinterpret_cast<int32_t*>(offset);
+			} 
+
+			return addr;
 		}
 
 		// this is platform and arch dependent right now, need to add support for others in the future 
@@ -108,7 +113,29 @@ namespace Zenova {
 			}
 
 			if (!successful) {
-				Zenova_Info("Hook failed with function {}", funcName);
+				if (funcName) {
+					Zenova_Error("Hook failed with function {}", funcName);
+				}
+				else {
+					Zenova_Error("Hook failed with function {}", function);
+				}
+			}
+
+			return successful;
+		}
+
+		EXPORT bool Create(uintptr_t address, void* funcJump, void* funcTrampoline, const char* funcName) {
+			bool successful = false;
+
+			successful = Platform::CreateHook(reinterpret_cast<void*>(SlideAddress(address)), funcJump, funcTrampoline);
+
+			if (!successful) {
+				if (funcName) {
+					Zenova_Error("Hook failed with function {}", funcName);
+				}
+				else {
+					Zenova_Error("Hook failed with address {}", address);
+				}
 			}
 
 			return successful;
@@ -150,7 +177,12 @@ namespace Zenova {
 			}
 
 			if (!successful) {
-				Zenova_Info("VHook failed with function {}", funcName);
+				if (funcName) {
+					Zenova_Error("VHook failed with function {}", funcName);
+				}
+				else {
+					Zenova_Error("VHook failed with vtable {} and function {}", vtable, function);
+				}
 			}
 
 			return successful;
@@ -172,7 +204,12 @@ namespace Zenova {
 			Platform::SetPageProtect(func, sizeof(void*), oldProtect);
 
 			if (!successful) {
-				Zenova_Info("VReplace failed with function {}", funcName);
+				if (funcName) {
+					Zenova_Error("VReplace failed with function {}", funcName);
+				}
+				else {
+					Zenova_Error("VReplace failed with vtable {} and offset {}", vtable, offset);
+				}
 			}
 
 			return successful;

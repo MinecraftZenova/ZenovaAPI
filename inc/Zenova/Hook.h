@@ -23,10 +23,11 @@ namespace Zenova {
 
 		// virtualDtor = address of the generated dtor in the vtable (msvc)
 		EXPORT uintptr_t GetRealDtor(uintptr_t virtualDtor);
-		EXPORT uintptr_t Sigscan(const char* sig, const char* mask);
-		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask);
+		EXPORT uintptr_t Sigscan(const char* sig, const char* mask, const char* funcName = nullptr);
+		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask, const char* funcName = nullptr);
 
 		EXPORT bool Create(void* function, _ZENOVA_HOOK_CREATE_EXTRA);
+		EXPORT bool Create(uintptr_t address, _ZENOVA_HOOK_CREATE_EXTRA);
 		EXPORT bool Create(void* vtable, void* function, _ZENOVA_HOOK_CREATE_EXTRA);
 
 		template <typename T,
