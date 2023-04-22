@@ -210,7 +210,6 @@ class Map:
         for vtable in self.vtables.keys():
             self.__process_vtable(vtable)
 
-
     def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
         full_addr = Map.__addr_helper(addr, mangled_name)
 
@@ -228,6 +227,10 @@ class Map:
     def __parse_funcs(self, value):
         for obj in value:
             mangled_name = obj["name"]
+            if any(item[1] == mangled_name for item in self.symbol_list):
+                print(f"Found duplicate symbol: '{mangled_name}'")
+                continue
+
             name = Windows.mangle_to_var(mangled_name)
             addr = obj["address"]
 
@@ -244,6 +247,10 @@ class Map:
 
     def __parse_variables(self, key, value):
         for var_name in value.keys():
+            if var_name in self.var_list:
+                print(f"Found duplicate variable: '{var_name}'")
+                continue
+
             self.var_list.append(var_name)
             addr = value[var_name]
             if type(addr) is str:
@@ -378,8 +385,6 @@ class Map:
         out.cxx("}")
         out.cxx("")
 
-
-
 # Supported Platforms
 class Windows:
     def mangle_to_var(name):
@@ -442,7 +447,6 @@ class Windows:
             case _:
                 print(f"Unsupported arch: {arch}")
 
-
 def generate(args: Args, out: Output, map: Map):
     file_comment = "This file was automatically generated using tools/" + os.path.basename(__file__)
     gen_time = datetime.datetime.utcnow().strftime("%a %b %d %Y %H:%M:%S UTC")
@@ -498,8 +502,6 @@ def should_rebuild_symbols(args: Args) -> bool:
         return True
     
     return False
-
-
 
 args = Args()
 if should_rebuild_symbols(args):
