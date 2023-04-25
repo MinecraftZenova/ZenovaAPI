@@ -109,12 +109,10 @@ class Map:
             return
         
         num_issues = len(self.current_file_issues)
-        # Don't print any info for succesfully parsed files
-        if num_issues > 0:
-            print(f"Found {num_issues} issue{'s'[:num_issues>1]} in {file.name}")
+        print(f"Found {num_issues} issue{'s'[:num_issues != 1]} in {file.name}")
 
-            for issue in self.current_file_issues:
-                print(f" - {issue}")
+        for issue in self.current_file_issues:
+            print(f" - {issue}")
 
     def __issue(self, message):
         self.current_file_issues.append(message)
