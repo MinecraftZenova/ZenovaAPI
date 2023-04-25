@@ -111,7 +111,7 @@ class Map:
         num_issues = len(self.current_file_issues)
         # Don't print any info for succesfully parsed files
         if num_issues > 0:
-            print(f"Found {num_issues} issue{'s'[:num_issues>1]} in {file.name}")
+            print(f"Found {num_issues} issue{'s'[:num_issues>1]}:")
 
             for issue in self.current_file_issues:
                 print(f" - {issue}")
@@ -545,6 +545,7 @@ if should_rebuild_symbols(args):
     for file_path in args.in_files:
         for glob_file_path in glob(file_path):
             file_full_path = os.path.abspath(glob_file_path)
+            print("Parsing Symbol Map: " + file_full_path)
             with open(file_full_path, "r") as f:
                 map.parse(f)
 
