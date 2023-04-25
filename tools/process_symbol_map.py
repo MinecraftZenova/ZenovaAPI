@@ -95,11 +95,9 @@ class Map:
 
     # Info for error logging
     current_file_issues = []
-    num_issues = 0
 
     def parse(self, file):
         self.current_file_issues = []
-        self.num_issues = 0
         
         try:
             reader = json.load(file)
@@ -110,16 +108,16 @@ class Map:
             print(f"Cannot parse '{file.name}', file does not contain valid JSON")
             return
         
+        num_issues = len(self.current_file_issues)
         # Don't print any info for succesfully parsed files
-        if self.num_issues > 0:
-            print(f"Found {self.num_issues} issue{'s'[:self.num_issues>1]} in {file.name}")
+        if num_issues > 0:
+            print(f"Found {num_issues} issue{'s'[:num_issues>1]} in {file.name}")
 
             for issue in self.current_file_issues:
                 print(f" - {issue}")
 
     def __issue(self, message):
         self.current_file_issues.append(message)
-        self.num_issues += 1
 
     def __unsupported(self, info: str):
         print(f"Unsupported API: {info}")
