@@ -93,14 +93,34 @@ class Map:
     include_list = []
     var_count = 0
 
+    # Info for error logging
+    current_file = ""
+    current_file_issues = []
+
     def parse(self, file):
-        reader = json.load(file)
-        for key in reader:
-            self.__parse(key, reader[key])
+        self.current_file = file.name
+        self.current_file_issues = []
+        
+        try:
+            reader = json.load(file)
+            for key in reader:
+                self.__parse(key, reader[key])
+
+        except json.decoder.JSONDecodeError:
+            print(f"Cannot parse '{file.name}', file does not contain valid JSON")
+            return
+        
+        # Don't print any info for succesfully parsed files
+        if len(self.current_file_issues) == 0:
+            return
+            
+        print(f"Found {len(self.current_file_issues)} issue{'' if len(self.current_file_issues) == 1 else 's'} in {self.current_file}")
+
+        for issue in self.current_file_issues:
+            print(f" - {issue}")
 
     def __unsupported(self, info: str):
         print(f"Unsupported API: {info}")
-
 
     def __addr_helper(addr: str, name: str) -> str:
         if addr == "" or addr == "0x0" or len(addr) < 2:
@@ -200,7 +220,11 @@ class Map:
         return vtable["noclass_funcs"]
 
     def __parse_vtables(self, value):
-        for obj in value:
+        for index, obj in enumerate(value):
+            if not("name" in obj):
+                self.current_file_issues.append(f"Vtable at index {index}, is missing required key 'name'")
+                continue
+
             self.vtables[obj["name"]] = {
                 "parent": obj.get("parent", ""), 
                 "address": obj.get("address", ""), 
@@ -214,7 +238,7 @@ class Map:
         full_addr = Map.__addr_helper(addr, mangled_name)
 
         if not full_addr:
-            self.__unsupported(f"Function {mangled_name} uses invalid address")
+            self.current_file_issues.append(f"Function {mangled_name} uses invalid address")
             return
 
         self.symbol_dict.setdefault(version, []).append({
@@ -225,13 +249,22 @@ class Map:
         })
 
     def __parse_funcs(self, value):
-        for obj in value:
+        for index, obj in enumerate(value):
+            if not("name" in obj):
+                self.current_file_issues.append(f"Function at index {index}, is missing required key 'name'")
+                continue
+
             mangled_name = obj["name"]
             if any(item[1] == mangled_name for item in self.symbol_list):
-                print(f"Found duplicate symbol: '{mangled_name}'")
+                self.current_file_issues.append(f"Found duplicate symbol: '{mangled_name}'")
                 continue
 
             name = Windows.mangle_to_var(mangled_name)
+
+            if not("address" in obj):
+                self.current_file_issues.append(f"Function {mangled_name} is missing required key 'address'")
+                continue
+            
             addr = obj["address"]
 
             if type(addr) is str:
@@ -240,7 +273,7 @@ class Map:
                 for k, v in addr.items():
                     self.__add_func(k, name, mangled_name, v)
             else:
-                self.__unsupported(f"address in {mangled_name} is an unsupported type")
+                self.current_file_issues.append(f"Address in {mangled_name} is an unsupported type")
                 continue
 
             self.symbol_list.append([name, mangled_name])
@@ -248,7 +281,7 @@ class Map:
     def __parse_variables(self, key, value):
         for var_name in value.keys():
             if var_name in self.var_list:
-                print(f"Found duplicate variable: '{var_name}'")
+                self.current_file_issues.append(f"Found duplicate variable: '{var_name}'")
                 continue
 
             self.var_list.append(var_name)
@@ -512,7 +545,6 @@ if should_rebuild_symbols(args):
     for file_path in args.in_files:
         for glob_file_path in glob(file_path):
             file_full_path = os.path.abspath(glob_file_path)
-            print("Parsing Symbol Map: " + file_full_path)
             with open(file_full_path, "r") as f:
                 map.parse(f)
 
