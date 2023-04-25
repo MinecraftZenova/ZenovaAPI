@@ -94,12 +94,12 @@ class Map:
     var_count = 0
 
     # Info for error logging
-    current_file = ""
     current_file_issues = []
+    num_issues = 0
 
     def parse(self, file):
-        self.current_file = file.name
         self.current_file_issues = []
+        self.num_issues = 0
         
         try:
             reader = json.load(file)
@@ -111,13 +111,15 @@ class Map:
             return
         
         # Don't print any info for succesfully parsed files
-        if len(self.current_file_issues) == 0:
-            return
-            
-        print(f"Found {len(self.current_file_issues)} issue{'' if len(self.current_file_issues) == 1 else 's'} in {self.current_file}")
+        if self.num_issues > 0:
+            print(f"Found {self.num_issues} issue{'s'[:self.num_issues>1]} in {file.name}")
 
-        for issue in self.current_file_issues:
-            print(f" - {issue}")
+            for issue in self.current_file_issues:
+                print(f" - {issue}")
+
+    def __issue(self, message):
+        self.current_file_issues.append(message)
+        self.num_issues += 1
 
     def __unsupported(self, info: str):
         print(f"Unsupported API: {info}")
@@ -222,7 +224,7 @@ class Map:
     def __parse_vtables(self, value):
         for index, obj in enumerate(value):
             if not("name" in obj):
-                self.current_file_issues.append(f"Vtable at index {index}, is missing required key 'name'")
+                self.__issue(f"Vtable at index {index}, object is missing required key 'name'")
                 continue
 
             self.vtables[obj["name"]] = {
@@ -238,7 +240,7 @@ class Map:
         full_addr = Map.__addr_helper(addr, mangled_name)
 
         if not full_addr:
-            self.current_file_issues.append(f"Function {mangled_name} uses invalid address")
+            self.__issue(f"Function {mangled_name} uses invalid address")
             return
 
         self.symbol_dict.setdefault(version, []).append({
@@ -251,18 +253,18 @@ class Map:
     def __parse_funcs(self, value):
         for index, obj in enumerate(value):
             if not("name" in obj):
-                self.current_file_issues.append(f"Function at index {index}, is missing required key 'name'")
+                self.__issue(f"Function at index {index}, object is missing required key 'name'")
                 continue
 
             mangled_name = obj["name"]
             if any(item[1] == mangled_name for item in self.symbol_list):
-                self.current_file_issues.append(f"Found duplicate symbol: '{mangled_name}'")
+                self.__issue(f"Found duplicate symbol: '{mangled_name}'")
                 continue
 
             name = Windows.mangle_to_var(mangled_name)
 
             if not("address" in obj):
-                self.current_file_issues.append(f"Function {mangled_name} is missing required key 'address'")
+                self.__issue(f"Function {mangled_name} is missing required key 'address'")
                 continue
             
             addr = obj["address"]
@@ -273,7 +275,7 @@ class Map:
                 for k, v in addr.items():
                     self.__add_func(k, name, mangled_name, v)
             else:
-                self.current_file_issues.append(f"Address in {mangled_name} is an unsupported type")
+                self.__issue(f"Address in {mangled_name} is an unsupported type")
                 continue
 
             self.symbol_list.append([name, mangled_name])
@@ -281,7 +283,7 @@ class Map:
     def __parse_variables(self, key, value):
         for var_name in value.keys():
             if var_name in self.var_list:
-                self.current_file_issues.append(f"Found duplicate variable: '{var_name}'")
+                self.__issue.append(f"Found duplicate variable: '{var_name}'")
                 continue
 
             self.var_list.append(var_name)
