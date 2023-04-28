@@ -185,7 +185,6 @@ class Map:
             
         return [ func ]
 
-    # todo: add support for multi inheritance vtables, should be easy with new implementation
     def __process_vtable(self, name: str, vtable: dict):
         noclass_funcs = vtable.setdefault("noclass_funcs", [])
 
@@ -377,15 +376,15 @@ class Map:
         if len(self.symbol_list) > 0 or len(self.parsed_vtables) > 0:
             out.header("")
             out.header("extern \"C\" {")
-            for name, _ in self.symbol_list:
-                if name:
-                    out.header("\textern void* " + name + "_ptr;")
             for name, vtable in self.parsed_vtables.items():
                 out.header("\textern void* " + name + "_vtable;")
 
                 if len(vtable["address"]) > 1:
                     for source in vtable["source"][1:]:
                         out.header(f"\textern void* {name}_{source}_vtable;")
+            for name, _ in self.symbol_list:
+                if name:
+                    out.header("\textern void* " + name + "_ptr;")
             for a in self.vdtor_list:
                 if a["name"]:
                     out.header("\textern void* " + a["name"] + "_ptr;")
@@ -543,7 +542,7 @@ class Windows:
             for symbol, offset, vtable_offset in vtable["functions"]:
                 if symbol != "":
                     vtable_name = name
-                    if vtable_offset > 0:
+                    if len(vtable["address"]) > 1 and vtable_offset > 0:
                         vtable_name += "_" + vtable["source"][vtable_offset]
 
                     out.asm("global " + symbol)
