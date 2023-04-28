@@ -4,6 +4,7 @@ import os
 import argparse
 import json
 import re
+import copy
 from glob import glob 
 from pathlib import Path
 #from itanium_demangler import parse as demangle
@@ -86,7 +87,10 @@ class Map:
     # 0 = var_name, 1 = mangled_name (sorry)
     symbol_list = []
     symbol_dict = {}
-    vtables = {}
+    # cached isn't the best name, holds onto vtables that can't be parsed yet
+    cached_vtables = {}
+    direct_vtables = {}
+    parsed_vtables = {}
     vdtor_list = []
     var_list = []
     var_dict = {"": []}
@@ -166,73 +170,140 @@ class Map:
             case _:
                 self.__unsupported(key)
 
+    # really hacky workaround for dealing with backreferences in msvc symbols
+    # todo: roll basic (de?)mangler that replaces these backreferences with the proper full name
+    # https://github.com/microsoft/checkedc-llvm/blob/master/lib/Demangle/MicrosoftDemangle.cpp
+    def __handle_backreference(self, name : str, vtable : dict, func : str) -> list:
+        parents = vtable["parent"]
+        func = re.sub(f'(@@@.*){name}@@', r'\g<1>1@', func)
+
+        if parents is not None:
+            ret = []
+            for parent_str in parents:
+                ret.extend(self.__handle_backreference(parent_str, self.parsed_vtables[parent_str], func))
+            return ret
+            
+        return [ func ]
+
     # todo: add support for multi inheritance vtables, should be easy with new implementation
-    def __process_vtable(self, name: str) -> list:
-        vtable = self.vtables[name]
-        
-        if "noclass_funcs" in vtable:
-            return vtable["noclass_funcs"]
+    def __process_vtable(self, name: str, vtable: dict):
+        noclass_funcs = vtable.setdefault("noclass_funcs", [])
 
-        vtable["noclass_funcs"] = []
-
-        has_parent = vtable["parent"] != "" 
-
+        parent = vtable["parent"] 
+        has_parent = parent is not None
         if has_parent:
-            vtable["noclass_funcs"] = self.__process_vtable(vtable["parent"]).copy()
+            for vtable_name in parent:
+                v = self.parsed_vtables[vtable_name]
+                noclass_funcs.extend(copy.deepcopy(v["noclass_funcs"]))
+            if len(noclass_funcs) > 1:
+                source = vtable.setdefault("source", [])
+                source.extend(parent if len(parent) > 1 else self.parsed_vtables[parent[0]]["source"].copy())
+        else:
+            noclass_funcs.append([])
+
+        base_noclass_funcs = noclass_funcs[0]
 
         for index, func in enumerate(vtable["functions"]):
             if func == "":
-                vtable["noclass_funcs"].append("")
-                vtable["functions"][index] = [ "", 0 ]
+                vtable["functions"][index] = [ "", 0, 0 ]
+                base_noclass_funcs.append("")
             elif func[:3] == "??1":
                 self.vdtor_list.append({
                     "vtable": name,
                     "name": Windows.mangle_to_var(func),
                     "mangled_name": func,
-                    "address": '0x{:X}'.format(int(vtable["address"], 16) + (index * 8))
+                    "address": '0x{:X}'.format(int(vtable["address"][0], 16) + (index * 8))
                 })
-                vtable["noclass_funcs"].append("")
-                vtable["functions"][index] = [ "", 0 ]
+
+                vtable["functions"][index] = [ "", 0, 0 ]
+                if not has_parent:
+                    base_noclass_funcs.append("")
             else:
                 noclass_func = func.replace(name + "@@", "@@", 1)
                 offset = index
+                vtable_offset = 0
 
                 if has_parent:
-                    # really hacky workaround for dealing with backreferences in msvc symbols
-                    # todo: roll basic (de?)mangler that replaces these backreferences with the proper full name
-                    # https://github.com/microsoft/checkedc-llvm/blob/master/lib/Demangle/MicrosoftDemangle.cpp
-                    parent_vtable = vtable
+                    potentials = self.__handle_backreference(name, vtable, noclass_func)
 
-                    while parent_vtable["parent"] != "":
-                        parent_str = parent_vtable["parent"]
-                        parent_vtable = self.vtables[parent_str]
-                        noclass_func = re.sub('(@@@.*)' + parent_str + '@@', r'\g<1>1@', noclass_func)
+                    # get the offsets of the vtable and location for a function
+                    offset = len(base_noclass_funcs)
 
-                    parent_funcs = vtable["noclass_funcs"]
-                    offset = parent_funcs.index(noclass_func) if noclass_func in parent_funcs else len(parent_funcs)
+                    i = 0
+                    found = False
+                    while i < len(noclass_funcs):
+                        parent_funcs = noclass_funcs[i]
+                        for potential in potentials:
+                            if potential in parent_funcs:
+                                noclass_func = potential
+                                offset = parent_funcs.index(noclass_func)
+                                vtable_offset = i
+                                found = True
+                                break
+                        if found:
+                            break
+                        i += 1
 
                 # append if not in the current list
-                if offset >= len(vtable["noclass_funcs"]):
-                    vtable["noclass_funcs"].append(noclass_func)
+                if offset >= len(base_noclass_funcs):
+                    base_noclass_funcs.append(noclass_func)
 
-                vtable["functions"][index] = [ func, offset ]
+                vtable["functions"][index] = [ func, offset, vtable_offset ]
 
-        return vtable["noclass_funcs"]
+        self.parsed_vtables[name] = vtable
+
+        if name in self.direct_vtables:
+            for vtable_name in self.direct_vtables[name]:
+                vtable = self.cached_vtables[vtable_name]
+                vtable["count"] += 1
+                if vtable["count"] == len(vtable["parent"]):
+                    self.cached_vtables.pop(vtable_name)
+                    self.__process_vtable(vtable_name, vtable)
+            self.direct_vtables.pop(name)
 
     def __parse_vtables(self, value):
         for index, obj in enumerate(value):
-            if not("name" in obj):
-                self.__issue(f"Vtable at index {index}, object is missing required key 'name'")
+            if "name" not in obj:
+                self.__issue(f"Vtable at index {index} is missing required key 'name'")
+                continue
+            name = obj["name"]
+
+            if name in self.parsed_vtables:
+                self.__issue(f"Vtable {name} has already been parsed")
+                continue
+            
+            if "address" not in obj:
+                self.__issue(f"Vtable {name} is missing required key 'address'")
+                continue
+            
+            if "functions" not in obj:
+                self.__issue(f"Vtable {name} is missing required key 'functions'")
                 continue
 
-            self.vtables[obj["name"]] = {
-                "parent": obj.get("parent", ""), 
-                "address": obj.get("address", ""), 
-                "functions": obj.get("functions", [])
+            parent = obj.get("parent")
+            if type(parent) is str:
+                parent = [ parent ]
+
+            address = obj["address"]
+            if type(address) is str:
+                address = [ address ]
+
+            vtable = {
+                "parent": parent, 
+                "address": address, 
+                "functions": obj["functions"]
             }
 
-        for vtable in self.vtables.keys():
-            self.__process_vtable(vtable)
+            if parent is not None:
+                if not set(parent).issubset(self.parsed_vtables):
+                    vtable["count"] = 0
+                    self.cached_vtables.setdefault(name, {}).update(vtable)
+                    for p in parent:
+                        self.direct_vtables.setdefault(p, []).append(name)
+                    continue
+            
+            self.__process_vtable(name, vtable)
+                
 
     def __add_func(self, version: str, name: str, mangled_name: str, addr: str):
         full_addr = Map.__addr_helper(addr, mangled_name)
@@ -303,14 +374,18 @@ class Map:
         #*.hxx
         out.header("")
         out.header("#pragma once")
-        if len(self.symbol_list) > 0 or len(self.vtables) > 0:
+        if len(self.symbol_list) > 0 or len(self.parsed_vtables) > 0:
             out.header("")
             out.header("extern \"C\" {")
             for name, _ in self.symbol_list:
                 if name:
                     out.header("\textern void* " + name + "_ptr;")
-            for name in self.vtables.keys():
+            for name, vtable in self.parsed_vtables.items():
                 out.header("\textern void* " + name + "_vtable;")
+
+                if len(vtable["address"]) > 1:
+                    for source in vtable["source"][1:]:
+                        out.header(f"\textern void* {name}_{source}_vtable;")
             for a in self.vdtor_list:
                 if a["name"]:
                     out.header("\textern void* " + a["name"] + "_ptr;")
@@ -377,8 +452,12 @@ class Map:
         for name, _ in self.symbol_list:
             if name:
                 out.cxx("void* " + name + "_ptr;")
-        for name in self.vtables.keys():
+        for name, vtable in self.parsed_vtables.items():
             out.cxx("void* " + name + "_vtable;")
+
+            if len(vtable["address"]) > 1:
+                for source in vtable["source"][1:]:
+                    out.cxx(f"void* {name}_{source}_vtable;")
         for a in self.vdtor_list:
             if a["name"]:
                 out.cxx("void* " + a["name"] + "_ptr;")
@@ -407,11 +486,15 @@ class Map:
                         
                 out.cxx("\t}")
 
-        for name, a in self.vtables.items():
-            address = a["address"]
+        for name, vtable in self.parsed_vtables.items():
+            addrs = vtable["address"]
+            out.cxx(f"\t{name}_vtable = reinterpret_cast<void*>(SlideAddress({addrs[0]}));")
 
-            if type(address) == str and address != "":
-                out.cxx("\t" + name + "_vtable = reinterpret_cast<void*>(SlideAddress(" + address + "));")
+            if len(vtable["address"]) > 1:
+                index = 1
+                for source in vtable["source"][1:]:
+                    out.cxx(f"\t{name}_{source}_vtable = reinterpret_cast<void*>(SlideAddress({addr}));")
+                    index += 1
 
         for a in self.vdtor_list:
             out.cxx("\t" + a["name"] + "_ptr = reinterpret_cast<void*>(GetRealDtor(SlideAddress(" + a["address"] + ")));")
@@ -440,8 +523,12 @@ class Windows:
             out.asm("extern " + name + "_ptr")
         for a in map.vdtor_list:
             out.asm("extern " + a["name"] + "_ptr")
-        for name in map.vtables.keys():
+        for name, vtable in map.parsed_vtables.items():
             out.asm("extern " + name + "_vtable")
+
+            if len(vtable["address"]) > 1:
+                for source in vtable["source"][1:]:
+                    out.asm(f"extern {name}_{source}_vtable")
         out.asm("")
         out.asm("SECTION .text")
         for var_name, mangled_name in map.symbol_list:
@@ -452,12 +539,16 @@ class Windows:
             out.asm("global " + a["mangled_name"])
             out.asm(a["mangled_name"] + ":")
             out.asm("\tjmp qword [rel " + a["name"] + "_ptr]")
-        for name, vtable in map.vtables.items():
-            for symbol, offset in vtable["functions"]:
+        for name, vtable in map.parsed_vtables.items():
+            for symbol, offset, vtable_offset in vtable["functions"]:
                 if symbol != "":
+                    vtable_name = name
+                    if vtable_offset > 0:
+                        vtable_name += "_" + vtable["source"][vtable_offset]
+
                     out.asm("global " + symbol)
                     out.asm(symbol + ":")
-                    out.asm("\tmov " + reg + ", [rel " + name + "_vtable]")
+                    out.asm(f"\tmov {reg}, [rel {vtable_name}_vtable]")
                     out.asm("\tjmp [" + reg + "+" + str(offset * pointer_size) + "]")
 
     def generate_init(self, out: Output):
