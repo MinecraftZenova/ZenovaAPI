@@ -87,7 +87,7 @@ class Map:
     # 0 = var_name, 1 = mangled_name (sorry)
     symbol_list = []
     symbol_dict = {}
-    # cached isn't the best name, holds onto vtables that can't be parsed yet
+    # holds onto vtables that can't be parsed yet
     cached_vtables = {}
     direct_vtables = {}
     parsed_vtables = {}
@@ -111,6 +111,14 @@ class Map:
         except json.decoder.JSONDecodeError:
             print(f"Cannot parse '{file.name}', file does not contain valid JSON")
             return
+        
+        vtable_count = len(self.cached_vtables)
+        if vtable_count > 0:
+            print(f"{vtable_count} unparsed vtable{'s'[:vtable_count^1]}:")
+
+            for name, vtable in self.cached_vtables.items():
+                parent = list(filter(lambda i: i not in self.parsed_vtables, vtable["parent"]))
+                print(f" - {name} is missing parent{'s'[:len(parent)^1]}: {parent}")
         
         num_issues = len(self.current_file_issues)
         # Don't print any info for succesfully parsed files
