@@ -53,15 +53,55 @@ namespace Zenova {
 			return true;
 		}
 
-		// doesn't work for inlined dtors, need to put an error message when there's a vtable load at the start
+
+		inline std::unordered_map<uintptr_t, uintptr_t> dtorCache;
+
 		uintptr_t GetRealDtor(uintptr_t virtualDtor) {
-			virtualDtor = *reinterpret_cast<uintptr_t*>(virtualDtor); 
-			u8* iaddr = reinterpret_cast<u8*>(virtualDtor);
-			if (MemCompare(reinterpret_cast<const char*>(iaddr), "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\x48\x8B\xF9", "xxxx?xxxxxxxxxx")) {
-				return virtualDtor + 0x14 + *reinterpret_cast<int32_t*>(iaddr + 0x10);
+			uintptr_t dtor = *reinterpret_cast<uintptr_t*>(virtualDtor);
+
+			// handle thunk dtors
+			const char msvcThunkDtor[] = "\x48\x81\xE9\x00\x00\x00\x00\xE9\x00\x00\x00\x00";
+			size_t thunkOffset = sizeof(msvcThunkDtor) - 1;
+			if (MemCompare(reinterpret_cast<const char*>(dtor), msvcThunkDtor, "xxx????x????")) {
+				dtor += thunkOffset + *reinterpret_cast<int32_t*>(dtor + thunkOffset - 4);
 			}
 
-			Zenova_Error("0x{:x} is not a valid virtual dtor, dtor might be inlined?", virtualDtor);
+			const char msvcDeleteDtor[] = "\x48\x89\x5C\x24\x00\x57\x48\x83\xEC\x20\x8B\xDA\x48\x8B\xF9\xE8\x00\x00\x00\x00";
+			size_t deleteOffset = sizeof(msvcDeleteDtor) - 1;
+			if (MemCompare(reinterpret_cast<const char*>(dtor), msvcDeleteDtor, "xxxx?xxxxxxxxxxx????")) {
+				return dtor + deleteOffset + *reinterpret_cast<int32_t*>(dtor + deleteOffset - 4);
+			}
+
+			auto& dtorIt = dtorCache.find(dtor);
+			if (dtorIt != dtorCache.end()) {
+				return dtorIt->second;
+			}
+
+			uintptr_t ret = dtor;
+			while (*reinterpret_cast<u16*>(ret) != 0xCCC3) {
+				++ret;
+			}
+
+			uintptr_t funcSize = ret - dtor + 1;
+			for (uintptr_t i = 0; i != funcSize; ++i) {
+				const char msvcDelete[] = "\xF6\xC3\x01\x74\x00\xBA\x00\x00\x00\x00\x48\x8B\xCF\xE8\x00\x00\x00\x00";
+				size_t deleteSize = sizeof(msvcDelete) - 1;
+				if (MemCompare(reinterpret_cast<const char*>(dtor + i), msvcDelete, "xxxx?x????xxxx????")) {
+					// todo: cleanup this allocation somehow
+					u8* newFunc = new u8[funcSize];
+					void* srcFunc = reinterpret_cast<void*>(dtor);
+					memcpy(newFunc, srcFunc, funcSize);
+					memset(&newFunc[i], 0x90, deleteSize);
+
+					Platform::SetPageProtect(newFunc, funcSize, ProtectionFlags::Execute | ProtectionFlags::Write);
+
+					ret = reinterpret_cast<uintptr_t>(newFunc);
+					dtorCache.insert({ dtor, ret });
+					return ret;
+				}
+			}
+
+			Zenova_Error("0x{:x} is not a valid virtual dtor", virtualDtor);
 			return 0;
 		}
 
