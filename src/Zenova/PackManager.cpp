@@ -1,6 +1,6 @@
 #include "PackManager.h"
 
-#include "JsonHelper.h"
+#include "Zenova/JsonHelper.h"
 #include "Globals.h"
 #include "Zenova/Log.h"
 #include "Zenova/Minecraft/ResourceHeaders.h"

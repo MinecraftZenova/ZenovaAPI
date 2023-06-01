@@ -3,3 +3,4 @@ build
 generated
 Common
 *.aps
+*.pyc

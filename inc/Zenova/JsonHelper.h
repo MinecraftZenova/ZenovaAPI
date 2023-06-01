@@ -7,7 +7,7 @@
 #undef GetObject
 #endif
 
-#include "../rapidjson/document.h"
+#include "rapidjson/document.h"
 #include "rapidjson/istreamwrapper.h"
 namespace json = rapidjson;
 
