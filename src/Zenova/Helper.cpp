@@ -1,3 +1,5 @@
+﻿#define LOG_CONTEXT "Zenova"
+
 #include "Helper.h"
 
 #include <iostream> //std::cout (Zenova::MessageRedirection)
@@ -8,17 +10,10 @@
 #include <cstdlib>
 
 #include "Zenova.h"
-#include "Zenova/Globals.h"
 #include "Zenova/JsonHelper.h"
-#include "Zenova/Minecraft.h"
 #include "Zenova/Platform/PlatformImpl.h"
 #include "Zenova/Profile/Manager.h"
 #include "Utils/Utils.h"
-
-#include "Hooks/InputHooks.h"
-#include "Hooks/ResourceHooks.h"
-
-#include "generated/initcpp.h"
 
 namespace Zenova {
 	bool start(void* platformArgs) {
@@ -26,15 +21,8 @@ namespace Zenova {
 
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if (run) {
-			logger.info("Zenova Started");
-			logger.info("ZenovaData Location: {}", manager.dataFolder);
-
-			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
-			logger.info("Minecraft's BaseAddress: {:x}", Platform::GetMinecraftBaseAddress());
-			logger.info("Minecraft's Folder: {}", Platform::GetMinecraftFolder());
-
-			createResourceHooks();
-			createInputHooks();
+			Zenova_Info("Zenova Started");
+			Zenova_Info("ZenovaData Location: {}", manager.dataFolder);
 
 			manager.init();
 		}
@@ -54,7 +42,7 @@ namespace Zenova {
 			manager.update();
 		}
 
-		logger.info("Zenova Stopped");
+		Zenova_Info("Zenova Stopped");
 
 		PlatformImpl::Destroy();
 		return 0;

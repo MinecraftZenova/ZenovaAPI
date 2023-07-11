@@ -1,23 +1,22 @@
 #pragma once
 
 #include <chrono>
+#include <deque>
 #include <functional>
 #include <vector>
 
 #include "ProfileInfo.h"
-#include "ModInfo.h"
+#include "Zenova/Mod.h"
 
 namespace Zenova {
+    struct ModContext;
+
     class Manager {
         std::vector<ProfileInfo> profiles;
-        std::vector<ModInfo> mods;
+        std::deque<ModContext> mods;
 
         ProfileInfo launched;
         ProfileInfo current;
-
-        using clock = std::chrono::steady_clock;
-        std::chrono::time_point<clock> tickTimer = clock::now();
-
 	public:
         std::string dataFolder;
 
@@ -29,7 +28,7 @@ namespace Zenova {
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
         std::string getVersion();
-        size_t getModCount();
+        std::deque<ModContext>& getMods();
 
     private:
         void refreshList();
@@ -37,4 +36,6 @@ namespace Zenova {
 
         ProfileInfo _loadLaunchedProfile();
 	};
+
+    inline Manager manager;
 }

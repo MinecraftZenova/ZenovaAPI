@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from copy import deepcopy
 from enum import Enum, Flag, auto
+import subprocess
 import numpy as np
 
 def nw(x, y, match = 1, mismatch = 1, gap = 1):
@@ -311,6 +312,11 @@ class StringView:
     def __getitem__(self, key):
         return self.get()[key]
 
+class OutputFlags:
+    # mangled output flags
+    nameBackref = True
+    funcBackref = True
+
 def outputSpaceIfNecessary(s: str):
     if s:
         c = s[-1]
@@ -323,18 +329,18 @@ def outputQualifiers(q: Qualifiers, spaceBefore = True, spaceAfter = False):
     if q == Qualifiers._None:
         return ""
 
-    o = ""
-    for mask in [Qualifiers.Const, Qualifiers.Volatile, Qualifiers.Restrict]:
-        if not q & mask:
-            continue
+    qs = []
+    if q & Qualifiers.Const: qs.append("const")
+    if q & Qualifiers.Volatile: qs.append("volatile")
+    if q & Qualifiers.Restrict: qs.append("__restrict")
+    if q & Qualifiers.Unaligned: qs.append("__unaligned")
 
+    o = ""
+    for qo in qs:
         if spaceBefore:
             o += " "
-        
-        match mask:
-            case Qualifiers.Const: o += "const"
-            case Qualifiers.Volatile: o += "volatile"
-            case Qualifiers.Restrict: o += "__restrict"
+        o += qo
+        spaceBefore = True
         
     if spaceAfter:
         o += outputSpaceIfNecessary(o)
@@ -355,6 +361,8 @@ def outputCallingConvention(cc: CallingConv):
     return ""
 
 class Node:
+    flags = OutputFlags()
+
     def __init__(self):
         self.mangled = ""
         self.backref = ""
@@ -365,14 +373,14 @@ class Node:
         else:
             self.mangled += mangled.update()
 
-    def mangle(self, backref = True):
+    def mangle(self):
         if self.mangled: return self.mangled
         
         raise RuntimeError("mangled is empty")
 
-    def getMangled(self, backref = True):
-        if backref and self.backref: return self.backref
-        return self.mangle(backref)
+    def getMangled(self):
+        if self.flags.funcBackref and self.backref: return self.backref
+        return self.mangle()
 
 class IdentifierNode(Node):
     def __init__(self):
@@ -394,9 +402,19 @@ class NamedIdentifierNode(IdentifierNode):
     def __str__(self):
         return self.name + self.getTemplateParams()
 
-    def mangle(self, backref = True):
-        template = self.templateParams.mangle(backref) if self.templateParams else ""
-        return super().mangle(backref) + template
+    def update(self, mangled: StringView):
+        if self.templateParams:
+            self.templateParams.nodes[0].qualName.components.nodes[0].update(mangled)
+        else:
+            super().update(mangled)
+
+    def getMangled(self):
+        if self.flags.nameBackref and self.backref: return self.backref
+        return self.mangle()
+
+    def mangle(self):
+        template = self.templateParams.mangle() if self.templateParams else ""
+        return super().mangle() + template
 
 class ConversionOperatorIdentifierNode(IdentifierNode):
     def __init__(self):
@@ -505,14 +523,14 @@ class NodeArrayNode:
     def __str__(self):
         return self.get(",")
 
-    def mangle(self, backref = True, reverse = False):
+    def mangle(self, reverse = False):
         start = 0
         end = len(self.nodes)
 
         o = ""
         while start != end:
             i = end - start - 1 if reverse else start
-            o += self.nodes[i].getMangled(backref)
+            o += self.nodes[i].getMangled()
             start += 1
         return o
 
@@ -526,8 +544,8 @@ class QualifiedNameNode:
     def getUnqualifiedIdentifier(self):
         return self.components.nodes[-1]
 
-    def mangle(self, backref = True):
-        return self.components.mangle(backref, True)
+    def mangle(self):
+        return self.components.mangle(True)
 
 class TemplateParameterReferenceNode(Node):
     def __init__(self):
@@ -542,6 +560,9 @@ class IntegerLiteralNode(Node):
         super().__init__()
         self.value = value
 
+    def __str__(self):
+        return str(self.value)
+
 class TypeNode(Node):
     def __init__(self):
         super().__init__()
@@ -552,6 +573,83 @@ class TypeNode(Node):
 
     def __str__(self):
         return self.getPre() + self.getPost()
+
+class TagTypeNode(TypeNode):
+    class Kind(Enum):
+        Class = auto()
+        Struct = auto()
+        Union = auto()
+        Enum = auto()
+
+    def __init__(self, tag: Kind):
+        super().__init__()
+        self.qualName: QualifiedNameNode = None
+        self.tag = tag
+
+    def getPre(self):
+        match self.tag:
+            case self.Kind.Class: o = "class"
+            case self.Kind.Struct: o = "struct"
+            case self.Kind.Union: o = "union"
+            case self.Kind.Enum: o = "enum"
+        return o + " " + str(self.qualName) + outputQualifiers(self.quals)
+
+    def mangle(self):
+        return super().mangle() + self.qualName.mangle()
+
+class PrimitiveTypeNode(TypeNode):
+    class Kind(Enum):
+        Void = auto()
+        Bool = auto()
+        Char = auto()
+        Schar = auto()
+        Uchar = auto()
+        Char16 = auto()
+        Char32 = auto()
+        Short = auto()
+        Ushort = auto()
+        Int = auto()
+        Uint = auto()
+        Long = auto()
+        Ulong = auto()
+        Int64 = auto()
+        Uint64 = auto()
+        Wchar = auto()
+        Float = auto()
+        Double = auto()
+        Ldouble = auto()
+        Nullptr = auto()
+
+    def __init__(self, kind: Kind):
+        super().__init__()
+        self.kind = kind
+
+    def getPre(self):
+        match self.kind:
+            case self.Kind.Void: o = "void"
+            case self.Kind.Bool: o = "bool"
+            case self.Kind.Char: o = "char"
+            case self.Kind.Schar: o = "signed char"
+            case self.Kind.Uchar: o = "unsigned char"
+            case self.Kind.Char16: o = "char16_t"
+            case self.Kind.Char32: o = "char32_t"
+            case self.Kind.Short: o = "short"
+            case self.Kind.Ushort: o = "unsigned short"
+            case self.Kind.Int: o = "int"
+            case self.Kind.Uint: o = "unsigned int"
+            case self.Kind.Long: o = "long"
+            case self.Kind.Ulong: o = "unsigned long"
+            case self.Kind.Int64: o = "__int64"
+            case self.Kind.Uint64: o = "unsigned __int64"
+            case self.Kind.Wchar: o = "wchar_t"
+            case self.Kind.Float: o = "float"
+            case self.Kind.Double: o = "double"
+            case self.Kind.Ldouble: o = "long double"
+            case self.Kind.Nullptr: o = "std::nullptr_t"
+        return o + outputQualifiers(self.quals)
+
+class ArrayTypeNode(TypeNode):
+    pass
 
 class FunctionSignatureNode(TypeNode):
     class ThisAdjustor:
@@ -569,6 +667,7 @@ class FunctionSignatureNode(TypeNode):
         self.retType: TypeNode = None
         self.isVariadic = False
         self.params: NodeArrayNode = None
+        self.extra = ""
 
         self.thisAdjust = None
 
@@ -603,12 +702,11 @@ class FunctionSignatureNode(TypeNode):
     def getPost(self):
         o = ""
         if not self.funcClass & FuncClass.NoParameterList:
-            o += f"({str(self.params)})"
+            o += '('
+            o += str(self.params)
+            o += ')'
         
-        if self.quals & Qualifiers.Const: o += "const "
-        if self.quals & Qualifiers.Volatile: o += " volatile"
-        if self.quals & Qualifiers.Restrict: o += " __restrict"
-        if self.quals & Qualifiers.Unaligned: o += " __unaligned"
+        o += outputQualifiers(self.quals)
 
         match self.refQual:
             case FunctionRefQualifier.Reference: o += " &"
@@ -619,88 +717,9 @@ class FunctionSignatureNode(TypeNode):
 
         return o
 
-    def mangle(self, backref = True):
-        ret = self.retType.getMangled(backref) if self.retType else ""
-        return super().mangle(backref) + ret + self.params.mangle(backref)
-
-class TagTypeNode(TypeNode):
-    class Kind(Enum):
-        Class = auto()
-        Struct = auto()
-        Union = auto()
-        Enum = auto()
-
-    def __init__(self, tag: Kind):
-        super().__init__()
-        self.qualName: QualifiedNameNode = None
-        self.tag = tag
-
-    def getPre(self):
-        o = ""
-        match self.tag:
-            case self.Kind.Class: o = "class"
-            case self.Kind.Struct: o = "struct"
-            case self.Kind.Union: o = "union"
-            case self.Kind.Enum: o = "enum"
-        return f"{o} {self.qualName}{outputQualifiers(self.quals)}"
-
-    def mangle(self, backref = True):
-        return super().mangle(backref) + self.qualName.mangle(backref)
-
-class PrimitiveTypeNode(TypeNode):
-    class Kind(Enum):
-        Void = auto()
-        Bool = auto()
-        Char = auto()
-        Schar = auto()
-        Uchar = auto()
-        Char16 = auto()
-        Char32 = auto()
-        Short = auto()
-        Ushort = auto()
-        Int = auto()
-        Uint = auto()
-        Long = auto()
-        Ulong = auto()
-        Int64 = auto()
-        Uint64 = auto()
-        Wchar = auto()
-        Float = auto()
-        Double = auto()
-        Ldouble = auto()
-        Nullptr = auto()
-
-    def __init__(self, kind: Kind):
-        super().__init__()
-        self.kind = kind
-
-    def getPre(self):
-        o = ""
-        match self.kind:
-            case self.Kind.Void: o = "void"
-            case self.Kind.Bool: o = "bool"
-            case self.Kind.Char: o = "char"
-            case self.Kind.Schar: o = "signed char"
-            case self.Kind.Uchar: o = "unsigned char"
-            case self.Kind.Char16: o = "char16_t"
-            case self.Kind.Char32: o = "char32_t"
-            case self.Kind.Short: o = "short"
-            case self.Kind.Ushort: o = "unsigned short"
-            case self.Kind.Int: o = "int"
-            case self.Kind.Uint: o = "unsigned int"
-            case self.Kind.Long: o = "long"
-            case self.Kind.Ulong: o = "unsigned long"
-            case self.Kind.Int64: o = "__int64"
-            case self.Kind.Uint64: o = "unsigned __int64"
-            case self.Kind.Wchar: o = "wchar_t"
-            case self.Kind.Float: o = "float"
-            case self.Kind.Double: o = "double"
-            case self.Kind.Ldouble: o = "long double"
-            case self.Kind.Nullptr: o = "std::nullptr_t"
-        return f"{o}{outputQualifiers(self.quals)}"
-
-class ArrayTypeNode(TypeNode):
-    pass
+    def mangle(self):
+        ret = self.retType.getMangled() if self.retType else ""
+        return super().mangle() + ret + self.params.mangle() + self.extra
 
 class PointerTypeNode(TypeNode):
     def __init__(self):
@@ -736,7 +755,7 @@ class PointerTypeNode(TypeNode):
             case PointerAffinity.Reference: o += "&"
             case PointerAffinity.RValueReference: o += "&&"
 
-        return o + outputQualifiers(self.quals, False)
+        return o + outputQualifiers(self.quals)
 
     def getPost(self):
         o = ""
@@ -745,29 +764,59 @@ class PointerTypeNode(TypeNode):
         o += self.pointee.getPost()
         return o
 
-    def mangle(self, backref = True):
-        return super().mangle(backref) + self.pointee.getMangled(backref)
+    def mangle(self):
+        return super().mangle() + self.pointee.getMangled()
 
-class Symbol:
+class SymbolNode:
     def __init__(self, sig: FunctionSignatureNode, symbol: str):
         self.name: QualifiedNameNode = None
         self.sig = sig
-        self.extra = ""
         self.symbol = symbol
+        self.noBackrefSymbol: str = None
 
-    def __str__(self):
+    def demangle(self, flags = OutputFlags()):
+        Node.flags = flags
+
         o = str(self.sig.getPre())
         o += outputSpaceIfNecessary(o)
         o += str(self.name) + str(self.sig.getPost())
         return o
 
+    def __mangle(self, flags = OutputFlags()):
+        Node.flags = flags
+        return self.name.mangle() + self.sig.getMangled()
+
+    def mangle(self, useNameBackref: bool = True):
+        if useNameBackref:
+            return self.__mangle()
+        else:
+            if self.noBackrefSymbol:
+                return self.noBackrefSymbol
+        
+            flags = OutputFlags()
+            flags.nameBackref = False
+            m = self.noBackrefSymbol = self.__mangle(flags)
+            return m
+
+    def to_var(self):
+        name = self.symbol.replace("?", '_')
+        name = name.replace("@", '_')
+        return name
+
     def verify(self):
         built = self.mangle()
         if built != self.symbol:
+            print("Failed to match original symbol with node system")
             print(nw(self.symbol, built))
 
-    def mangle(self, backref = True):
-        return self.name.mangle(backref) + self.sig.getMangled(backref) + self.extra
+        built = self.mangle(False)
+        builtSymbol = MSVCDemangler().parse(built) 
+
+        func = self.demangle()
+        builtFunc = builtSymbol.demangle()
+        if func != builtFunc:
+            print("Failed to unroll backreferences")
+            print(nw(func, builtFunc))
 
 class MSVCDemangler:
     def __init__(self):
@@ -783,9 +832,7 @@ class MSVCDemangler:
         if i >= len(self.backrefs):
             raise RuntimeError("demangleBackRefName")
 
-        b = self.backrefs[i]
-        n = NamedIdentifierNode(str(b))
-        n.mangled = b.mangled
+        n = deepcopy(self.backrefs[i])
         n.backref = mangled.update()
 
         return n
@@ -1275,6 +1322,7 @@ class MSVCDemangler:
         fsn.params = self.demangleFunctionParameterList(mangled)
 
         if mangled.consumeFront('Z'):
+            fsn.extra = mangled.update()
             return fsn
 
         # Throw
@@ -1309,7 +1357,7 @@ class MSVCDemangler:
         if thisAdjust is not None:
             fsn.thisAdjust = thisAdjust
         
-        return Symbol(fsn, mangled.view) 
+        return SymbolNode(fsn, mangled.view) 
 
     def demangleEncodedSymbol(self, mangled: StringView, qn: QualifiedNameNode):
         match mangled.front():
@@ -1318,7 +1366,6 @@ class MSVCDemangler:
         
         fsn = self.demangleFunctionEncoding(mangled)
         fsn.name = qn
-        fsn.extra = mangled.update()
 
         uqn = qn.getUnqualifiedIdentifier()
         if type(uqn) is ConversionOperatorIdentifierNode:

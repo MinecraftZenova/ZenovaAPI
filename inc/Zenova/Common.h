@@ -9,9 +9,9 @@
 #pragma warning(disable:4251)
 
 #ifdef ZENOVA_API
-#define EXPORT __declspec(dllexport)
+#define ZENOVA_EXPORT __declspec(dllexport)
 #else
-#define EXPORT __declspec(dllimport) 
+#define ZENOVA_EXPORT __declspec(dllimport) 
 #endif
 
 #ifdef _MSC_VER
@@ -37,19 +37,4 @@ namespace Zenova {
 	constexpr std::underlying_type_t<E> enum_cast(E enumValue) {
 		return static_cast<std::underlying_type_t<E>>(enumValue);
 	}
-
-	//In the future add string operators?
-	class EXPORT UniversalString {
-		std::wstring s;
-
-	public:
-		UniversalString();
-		UniversalString(const std::string& pstr);
-		UniversalString(const std::wstring& pwstr);
-		UniversalString(const char* pstr);
-		UniversalString(const wchar_t* pwstr);
-
-		std::string str() const;
-		std::wstring wstr() const;
-	};
 }

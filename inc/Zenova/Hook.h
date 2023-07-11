@@ -1,75 +1,37 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <tuple>
-#include <vector> //std::vector
-#include <utility> //std::pair
-#include <type_traits>
-#include <iostream>
-
 #include "Common.h"
-#include "Log.h"
 #include "Platform.h"
 
-// there's one too many overloaded versions of the create function
-#define _ZENOVA_HOOK_CREATE_EXTRA \
-	void* funcJump, void* funcTrampoline, const char* funcName = nullptr
+#include <unordered_map>
 
 namespace Zenova {
 	namespace Hook {
-		EXPORT uintptr_t SlideAddress(std::size_t offset);
-		EXPORT std::size_t UnslideAddress(uintptr_t result);
+		struct Vtable {
+			uintptr_t address;
+			std::unordered_map<std::string, size_t> funcOffsets;
+		};
 
-		// virtualDtor = address of the generated dtor in the vtable (msvc)
-		EXPORT uintptr_t GetRealDtor(uintptr_t virtualDtor);
-		EXPORT uintptr_t Sigscan(const char* sig, const char* mask, const char* funcName = nullptr);
-		EXPORT uintptr_t SigscanCall(const char* sig, const char* mask, const char* funcName = nullptr);
+		ZENOVA_EXPORT uintptr_t SlideAddress(size_t offset);
+		ZENOVA_EXPORT size_t UnslideAddress(uintptr_t result);
 
-		EXPORT bool Create(void* function, _ZENOVA_HOOK_CREATE_EXTRA);
-		EXPORT bool Create(uintptr_t address, _ZENOVA_HOOK_CREATE_EXTRA);
-		EXPORT bool Create(void* vtable, void* function, _ZENOVA_HOOK_CREATE_EXTRA);
+		ZENOVA_EXPORT uintptr_t* GetSymbol(const char* function);
+		ZENOVA_EXPORT Vtable* GetVtable(const char* vtable);
 
-		template <typename T,
-			std::enable_if_t<std::is_function<typename std::remove_pointer<T>::type>::value>* = nullptr>
-		bool Create(T function, _ZENOVA_HOOK_CREATE_EXTRA) {
-			return Create(*reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
-		}
+		ZENOVA_EXPORT uintptr_t Sigscan(const char* sig, const char* mask, const char* funcName = nullptr);
+		ZENOVA_EXPORT uintptr_t SigscanCall(const char* sig, const char* mask, const char* funcName = nullptr);
 
-		template <typename T,
-			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
-		bool Create(T function, _ZENOVA_HOOK_CREATE_EXTRA) {
-			return Create(*reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
-		}
+		ZENOVA_EXPORT bool Create(const char* function, void* funcJump, void* funcTrampoline);
+		ZENOVA_EXPORT bool Create(uintptr_t address, void* funcJump, void* funcTrampoline, const char* funcName = nullptr);
 
-		template <typename T,
-			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
-		bool Create(void* vtable, T function, _ZENOVA_HOOK_CREATE_EXTRA) {
-			return Create(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
-		}
-
-		EXPORT bool ReplaceVtable(void* vtable, size_t offset, _ZENOVA_HOOK_CREATE_EXTRA);
-		EXPORT bool ReplaceVtable(void* vtable, void* function, _ZENOVA_HOOK_CREATE_EXTRA);
-
-		template <typename T,
-			std::enable_if_t<std::is_member_function_pointer<typename std::remove_pointer<T>::type>::value>* = nullptr>
-			bool ReplaceVtable(void* vtable, T function, _ZENOVA_HOOK_CREATE_EXTRA) {
-			return ReplaceVtable(vtable, *reinterpret_cast<void**>(&function), funcJump, funcTrampoline, funcName);
-		}
+		ZENOVA_EXPORT bool ReplaceVtable(const char* vtable, const char* function, void* funcJump, void* funcTrampoline);
+		ZENOVA_EXPORT bool ReplaceVtable(uintptr_t vtable, size_t offset, void* funcJump, void* funcTrampoline, const char* funcName = nullptr);
 	};
 }
 
-// defines the cast to choose an overloaded member function
-// ex: Zenova_OCast(void, Test, (int))(&Test::overload); chooses void Test::overload(int)
-#define Zenova_OCast(r, c, p, ...) static_cast<r (c::*)p __VA_ARGS__>
-
 // ex: Zenova_Hook(Test::func, &func, &_func);
 #define Zenova_Hook(function, hook, trampoline) \
-	Zenova::Hook::Create(&function, hook, trampoline, #function)
+	Zenova::Hook::Create(#function, hook, trampoline)
 
-// ex: Zenova_VHook(Test, vfunc, &func, &_func); hooks Test::Vfunc
-#define Zenova_VHook(classname, function, hook, trampoline, ...) \
-	Zenova::Hook::Create(classname##_vtable, (__VA_ARGS__(&classname::function)), hook, trampoline, #classname "::" #function)
-
-#define Zenova_VReplace(classname, function, hook, trampoline, ...) \
-	Zenova::Hook::ReplaceVtable(classname##_vtable, (__VA_ARGS__(&classname::function)), hook, trampoline, #classname "::" #function)
+#define Zenova_VReplace(vtable, function, hook, trampoline) \
+	Zenova::Hook::ReplaceVtable(#vtable, #vtable "::" #function, hook, trampoline)

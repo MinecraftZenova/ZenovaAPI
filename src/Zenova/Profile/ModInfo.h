@@ -3,16 +3,17 @@
 #include <string>
 #include <vector>
 
-namespace Zenova {
-	class Mod;
+#include <Zenova/Hook.h>
 
+namespace Zenova {
     struct ModInfo {
-		void* mHandle = nullptr;
 		std::string mNameId, mName = "", mDescription = "";
 		std::string mVersion = "";
 
-		ModInfo(const std::string& modFolder);
-		ModInfo(ModInfo&&) noexcept;
+		void* mHandle = nullptr;
+		std::string folder;
+
+		ModInfo(const std::string& modFolder, const std::string& nameId = "");
 		~ModInfo();
 	};
 }

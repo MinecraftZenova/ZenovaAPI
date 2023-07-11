@@ -1,3 +1,5 @@
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
 #include "Utils.h"
 
 #include <locale>
@@ -31,7 +33,7 @@ namespace Util {
 		auto status = std::filesystem::status(folder, errc);
 
 		if (errc) {
-			Zenova_Error(errc.message());
+			Zenova_Error(errc.message().c_str());
 			return false;
 		}
 
@@ -43,7 +45,7 @@ namespace Util {
 		auto status = std::filesystem::status(file, errc);
 		
 		if (errc) {
-			Zenova_Error(errc.message());
+			Zenova_Error(errc.message().c_str());
 			return false;
 		}
 		

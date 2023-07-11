@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS // std::getenv
+﻿#define _CRT_SECURE_NO_WARNINGS // std::getenv
 
 #include "PlatformImpl.h"
 #include "Zenova/Platform.h"
@@ -11,23 +11,23 @@
 #include <direct.h>
 #include <Shlobj.h>
 #include <comdef.h>
+#include <fcntl.h>
 
 #include <array>
 #include <algorithm>
+#include <codecvt>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
 
 #include "Zenova.h"
-#include "Zenova/Globals.h"
 #include "Zenova/Utils/Utils.h"
 
 #include "MinHook.h"
 
 namespace Zenova::PlatformImpl {
 	inline void* CleanupVariables = nullptr;
-	inline FILE* console = nullptr;
 
 	void MessageRedirection() {
 		// Setup console logging
@@ -36,34 +36,34 @@ namespace Zenova::PlatformImpl {
 			return;
 		}
 
-		if (!console) {
-			// Handle std::cout, std::clog, std::cerr, std::cin
-			freopen_s(&console, "CONOUT$", "w", stdout);
-			freopen_s(&console, "CONOUT$", "w", stderr);
-			freopen_s(&console, "CONIN$", "r", stdin);
-
-			HANDLE hConOut = CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			HANDLE hConIn = CreateFileA("CONIN$", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			SetStdHandle(STD_OUTPUT_HANDLE, hConOut);
-			SetStdHandle(STD_ERROR_HANDLE, hConOut);
-			SetStdHandle(STD_INPUT_HANDLE, hConIn);
-
-			std::cout.clear();
-			std::clog.clear();
-			std::cerr.clear();
-			std::cin.clear();
-			std::wcout.clear();
-			std::wclog.clear();
-			std::wcerr.clear();
-			std::wcin.clear();
+		SetConsoleTitleA("Zenova Log");
+		if (!SetConsoleOutputCP(CP_UTF8)) {
+			Platform::ErrorPrinter();
 		}
+
+		HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+		DWORD dwMode = 0;
+		GetConsoleMode(hOut, &dwMode);
+		dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		SetConsoleMode(hOut, dwMode);
+
+		FILE* dummy;
+		freopen_s(&dummy, "CONIN$", "r", stdin);
+		freopen_s(&dummy, "CONOUT$", "w", stderr);
+		freopen_s(&dummy, "CONOUT$", "w", stdout);
+
+		//Clear the error state for each of the C++ standard stream objects. 
+		std::clog.clear();
+		std::cout.clear();
+		std::cerr.clear();
+		std::cin.clear();
 	}
 
 	bool Init(void* platformArgs) {
 		MessageRedirection();
 
 		if (MH_Initialize() != MH_OK) {
-			logger.warn("MinHook failed to initialize, normal launch without hooks");
+			Zenova_Warn("MinHook failed to initialize, normal launch without hooks");
 			return false;
 		}
 
@@ -75,10 +75,6 @@ namespace Zenova::PlatformImpl {
 	void Destroy() {
 		if (!FreeConsole()) {
 			Platform::ErrorPrinter();
-		}
-
-		if (console) {
-			fclose(console);
 		}
 
 		MH_Uninitialize();
@@ -169,16 +165,13 @@ namespace Zenova {
 			return;
 		}
 
-		logger.error(message_buffer);
+		Zenova_Error(message_buffer);
 		LocalFree(message_buffer);
 	}
 
-	uintptr_t Platform::GetModuleBaseAddress(const std::string& modName) {
-		return reinterpret_cast<uintptr_t>(GetModuleHandleA(modName.c_str()));
-	}
-
-	uintptr_t Platform::GetModuleBaseAddress(const std::wstring& modName) {
-		return reinterpret_cast<uintptr_t>(GetModuleHandleW(modName.c_str()));
+	uintptr_t Platform::GetModuleBaseAddress(const char* module) {
+		wchar_t* modName = (module) ? Util::CStrToCWstr(module) : NULL;
+		return reinterpret_cast<uintptr_t>(GetModuleHandleW(modName));
 	}
 
 	u32 Platform::GetModuleSize(const char* module) {
@@ -193,7 +186,7 @@ namespace Zenova {
 	}
 
 	void* Platform::LoadModule(const std::string& module) {
-		return LoadLibraryA((module + ".dll").c_str());
+		return LoadLibraryA(module.c_str());
 	}
 
 	bool Platform::CloseModule(void* module) {
@@ -236,12 +229,12 @@ namespace Zenova {
 		}
 
 		_com_error err(code);
-		logger.error(err.ErrorMessage());
+		Zenova_Error(err.ErrorMessage());
 		return L"";
 	}
 
-	std::wstring Platform::GetMinecraftFolder() {
-		static std::wstring folder = FindMinecraftFolder();
+	std::string Platform::GetMinecraftFolder() {
+		static std::string folder = Util::WstrToStr(FindMinecraftFolder());
 		return folder;
 	}
 

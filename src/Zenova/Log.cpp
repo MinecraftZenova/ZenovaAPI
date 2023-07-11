@@ -1,47 +1,38 @@
 #include "Zenova/Log.h"
 
-
 namespace Zenova {
-	const wchar_t* Log::_serverityToString(Severity severity) {
-		switch (severity) {
-			case Severity::None:
-			{
-				return L"";
+	namespace {
+		const char* serverityToString(Log::Severity severity) {
+			switch (severity) {
+				case Log::Severity::Info: return "Info";
+				case Log::Severity::Warning: return "Warning";
+				case Log::Severity::Error: return "Error";
+				default: return "Unknown";
 			}
-			case Severity::Info:
-			{
-				return L"Info";
-			}
-			case Severity::Warning:
-			{
-				return L"Warning";
-			}
-			case Severity::Error:
-			{
-				return L"Error";
-			}
-			default:
-			{
-				return L"Unknown";
+		}
+
+		auto serverityToColor(Log::Severity severity) {
+			switch (severity) {
+				case Log::Severity::Info: return fmt::fg(fmt::color::green);
+				case Log::Severity::Warning: return fmt::fg(fmt::color::yellow);
+				case Log::Severity::Error: return fmt::fg(fmt::color::red);
+				default: return fmt::fg(fmt::color::white);
 			}
 		}
 	}
 
-	void Log::Write(Severity severity, const UniversalString& name, const UniversalString& format, const fmt::wformat_args& args) {
+	void Log::Write(Severity severity, const std::string& name, const std::string& out) {
 		static std::mutex logMutex;
 		std::lock_guard<std::mutex> guard(logMutex);
 
-		std::wstring s = _serverityToString(severity);
-		if (s == L"") {
-			s = fmt::format(L"[{}] ", name.wstr());
-		}
-		else {
-			s = fmt::format(L"[{}] [{}] ", s, name.wstr());
+		std::string s = "";
+		if (severity != Log::Severity::None) {
+			s += fmt::format("[{}] ", fmt::styled(serverityToString(severity), serverityToColor(severity)));
 		}
 
-		s += fmt::vformat(format.wstr() + L"\n", args);
-
+		s += fmt::format("[{}] {}\n", name, out);
+		
 		Platform::OutputDebugMessage(s);
-		std::wcout << s << std::flush;
+		std::cout << s << std::flush;
 	}
 }

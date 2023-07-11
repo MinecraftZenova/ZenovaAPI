@@ -1,6 +1,5 @@
 #include "ProfileInfo.h"
 
-#include "../Globals.h"
 #include "Zenova/Log.h"
 
 namespace Zenova {
@@ -26,7 +25,7 @@ namespace Zenova {
                 }
             }
             else {
-                logger.warn("No mods found in loaded profile");
+                Zenova_Warn("No mods found in loaded profile");
             }
         }
     }

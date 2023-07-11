@@ -2,7 +2,6 @@
 
 #include <filesystem>
 
-#include "Globals.h"
 #include "Zenova/Log.h"
 
 namespace Zenova {
@@ -14,7 +13,7 @@ namespace Zenova {
             d.ParseStream(json::IStreamWrapper(ifs));
         }
         else if (missingFile) {
-            logger.warn("File \"{}\" not found", fileLocation);
+            Zenova_Warn("File \"{}\" not found", fileLocation);
         }
 
         return d;
@@ -27,7 +26,7 @@ namespace Zenova {
         }
 
         if (missingMember) {
-            logger.warn("Couldn't find {}", memberStr);
+            Zenova_Warn("Couldn't find {}", memberStr);
         }
 
         static const json::Value null;
@@ -41,7 +40,7 @@ namespace Zenova {
                 return objStr.GetString();
             }
             else {
-                logger.warn("{} isn't a String", memberStr);
+                Zenova_Warn("{} isn't a String", memberStr);
             }
         }
 

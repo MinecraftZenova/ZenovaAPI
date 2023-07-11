@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Zenova/Common.h>
-
 #include <string>
 #include <fstream>
 
@@ -14,7 +12,7 @@
 namespace json = rapidjson;
 
 namespace Zenova {
-	class ZENOVA_EXPORT JsonHelper {
+	class EXPORT JsonHelper {
 	public:
 		static json::Document OpenFile(const std::string& fileLocation, bool missingFile = true);
 		static const json::Value& FindMember(const json::Value& obj, const std::string& memberStr, bool missingMember = true);

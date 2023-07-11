@@ -1,19 +1,14 @@
+#define LOG_CONTEXT "Zenova::Manager"
+
 #include "Manager.h"
 
 #include "Zenova/Log.h"
-#include "Zenova/Mod.h"
-#include "Zenova/Globals.h"
 #include "Zenova/JsonHelper.h"
-#include "Zenova/PackManager.h"
 #include "Zenova/Utils/Utils.h"
 
-#define CALL_MOD_FUNC(mod, func, ...) \
-    if (mod.mHandle) {  \
-        auto modFunc = reinterpret_cast<decltype(&func)>(Platform::GetModuleFunction(mod.mHandle, #func)); \
-        if (modFunc) { \
-            modFunc(__VA_ARGS__); \
-        } \
-    }
+#include "ModInfo.h"
+
+MOD_FUNCTION void PluginAddMod(Zenova::ModContext& mod);
 
 namespace Zenova {
     // this currently runs (and has to) before initcpp{var_addrs}
@@ -25,8 +20,8 @@ namespace Zenova {
 
     Manager::~Manager() {
         // todo: verify this runs before ModInfo::~ModInfo
-        for (auto& modinfo : mods) {
-            CALL_MOD_FUNC(modinfo, ModStop);
+        for (auto& mod : mods) {
+            CALL_MOD_FUNC(mod.info->mHandle, ModStop);
         }
     }
 
@@ -56,61 +51,65 @@ namespace Zenova {
             return *profileIter;
         }
 
-        logger.error("{} does not exist in profile list with version: {}", name, launched.versionId);
+        Zenova_Error("{} does not exist in profile list with version: {}", name, launched.versionId);
         return ProfileInfo();
     }
 
     void Manager::run() {
-        for (auto& modinfo : mods) {
-            CALL_MOD_FUNC(modinfo, ModStart);
+        for (auto& mod : mods) {
+            CALL_MOD_FUNC(mod.info->mHandle, ModStart);
         }
     }
 
     void Manager::update() {
-        // todo: hook into minecraft's global tick function
-        namespace chrono = std::chrono;
-        using tick = chrono::duration<int, std::ratio<1, 20>>;
-
-        if (chrono::duration_cast<tick>(clock::now() - tickTimer).count() >= 1) {
-            tickTimer = clock::now();
-
-            for (auto& modinfo : mods) {
-                CALL_MOD_FUNC(modinfo, ModTick)
-            }
+        for (auto& mod : mods) {
+            CALL_MOD_FUNC(mod.info->mHandle, ModUpdate);
         }
     }
 
     void Manager::load(const ProfileInfo& profile) {
         if (!profile) {
             // todo: should we dump the full ProfileInfo?
-            logger.error("Failed to load profile {}, versionId is empty", profile.name);
+            Zenova_Error("Failed to load profile {}, versionId is empty", profile.name);
             return;
         }
 
-        logger.info("Loading {} profile", profile.name);
+        Zenova_Info("Loading {} profile", profile.name);
         current = profile;
 
-        mods.reserve(profile.modNames.size());
+        std::string versionFolder = dataFolder + "\\versions\\Minecraft-" + profile.versionId + "\\";
+        ModInfo* api = new ModInfo(versionFolder, "BedrockAPI");
+        ModContext apiContext{ api };
+        if (api->mHandle) {
+            CALL_MOD_FUNC(api->mHandle, ModLoad, apiContext);
+        }
+        else {
+            Zenova_Error("Failed to load {}, skipping all mods", api->mNameId);
+            Platform::ErrorPrinter();
+            return;
+        }
+
         for (auto& modName : profile.modNames) {
-            logger.info("Loading {}", modName);
+            Zenova_Info("Loading {}", modName);
 
-            // todo: verify path
-            std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
-            ModInfo mod(folder);
+            std::string folder = dataFolder + "\\mods\\" + modName + "\\";
+            ModInfo* mod = new ModInfo(folder);
 
-            if (mod.mHandle) {
-                ModContext ctx = { folder };
-                CALL_MOD_FUNC(mod, ModLoad, ctx);
-
-                PackManager::addMod(folder);
-
-                mods.push_back(std::move(mod));
+            if (mod->mHandle) {
+                mods.push_back(ModContext{ mod });
             }
             else {
-                logger.warn("Failed to load {}", mod.mName);
+                Zenova_Warn("Failed to load {}", mod->mNameId);
                 Platform::ErrorPrinter();
             }
         }
+
+        for (auto& mod : mods) {
+            CALL_MOD_FUNC(api->mHandle, PluginAddMod, mod);
+            CALL_MOD_FUNC(mod.info->mHandle, ModLoad, mod);
+        }
+
+        mods.push_front(std::move(apiContext));
     }
 
     void Manager::swap(const ProfileInfo& profile) {
@@ -123,27 +122,27 @@ namespace Zenova {
         return launched.versionId;
     }
 
-    size_t Manager::getModCount() {
-        return current.modNames.size();
+    std::deque<ModContext>& Manager::getMods() {
+        return mods;
     }
 
     // todo: should we stop execution for these errors?
     ProfileInfo Manager::_loadLaunchedProfile() {
         json::Document prefDocument = JsonHelper::OpenFile(dataFolder + "\\preferences.json");
         if (prefDocument.IsNull()) {
-            logger.error("preferences.json is empty");
+            Zenova_Error("preferences.json is empty");
             return {};
         }
 
         std::string profileHash = JsonHelper::FindString(prefDocument, "selectedProfile");
         if (profileHash.empty()) {
-            logger.error("profileHash is empty");
+            Zenova_Error("profileHash is empty");
             return {};
         }
 
         json::Document profilesDocument = JsonHelper::OpenFile(dataFolder + "\\profiles.json");
         if (profilesDocument.IsNull()) {
-            logger.error("profiles.json is empty");
+            Zenova_Error("profiles.json is empty");
             return {};
         }
 

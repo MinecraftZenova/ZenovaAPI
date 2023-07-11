@@ -5,13 +5,10 @@
 #include "Zenova/Log.h"
 
 namespace Zenova {
-	std::string Platform::TypeToString(const PlatformType& type) {
-		switch(type) {
+	std::string Platform::TypeToString(PlatformType type) {
+		switch (type) {
 			case PlatformType::Windows: {
 				return "Windows";
-			}
-			case PlatformType::Linux: {
-				return "Linux";
 			}
 			default: {
 				return "Unknown";
@@ -22,7 +19,4 @@ namespace Zenova {
 	bool Platform::CreateHook(const char* module, const char* function, void* funcJump, void* funcTrampoline) {
 		return CreateHook(FindAddress(module, function), funcJump, funcTrampoline);
 	}
-
-#ifdef ZENOVA_API
-#endif
 }
