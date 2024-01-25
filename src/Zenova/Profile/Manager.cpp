@@ -92,24 +92,7 @@ namespace Zenova {
 
         mods.reserve(profile.modNames.size());
         for (auto& modName : profile.modNames) {
-            logger.info("Loading {}", modName);
-
-            // todo: verify path
-            std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
-            ModInfo mod(folder);
-
-            if (mod.mHandle) {
-                ModContext ctx = { folder };
-                CALL_MOD_FUNC(mod, ModLoad, ctx);
-
-                PackManager::addMod(folder);
-
-                mods.push_back(std::move(mod));
-            }
-            else {
-                logger.warn("Failed to load {}", mod.mName);
-                Platform::ErrorPrinter();
-            }
+            loadMod(modName);
         }
     }
 
@@ -117,6 +100,32 @@ namespace Zenova {
         mods.clear();
 
         load(profile);
+    }
+
+    void Manager::loadMod(const std::string& modName)
+    {
+        if (std::find_if(mods.begin(), mods.end(),
+        [&modName](const ModInfo& mod) { return mod.mNameId == modName; }) != mods.end())
+            return;
+            
+        logger.info("Loading {}", modName);
+
+        // todo: verify path
+        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
+        ModInfo mod(folder);
+
+        if (mod.loadModule()) {
+            ModContext ctx = { folder };
+            CALL_MOD_FUNC(mod, ModLoad, ctx)
+
+            PackManager::addMod(folder);
+
+            mods.push_back(std::move(mod));
+        }
+        else {
+            logger.warn("Failed to load {}", mod.mName);
+            Platform::ErrorPrinter();
+        }
     }
 
     std::string Manager::getVersion() {
