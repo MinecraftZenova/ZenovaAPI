@@ -26,7 +26,7 @@ namespace Zenova {
 
 		bool run = (PlatformImpl::Init(platformArgs) && !manager.dataFolder.empty());
 		if (run) {
-			logger.info("Zenova Started (Dev)");
+			logger.info("Zenova Started");
 			logger.info("ZenovaData Location: {}", manager.dataFolder);
 
 			logger.info("Minecraft's Version: {}", Minecraft::version().toString());
