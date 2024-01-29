@@ -26,7 +26,8 @@ namespace Zenova {
         mNameId(std::move(mod.mNameId)),
         mName(std::move(mod.mName)),
         mDescription(std::move(mod.mDescription)),
-        mVersion(std::move(mod.mVersion))
+        mVersion(std::move(mod.mVersion)),
+        mDependencies(std::move(mod.mDependencies))
     {}
 
     ModInfo::~ModInfo() {
