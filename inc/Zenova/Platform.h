@@ -47,8 +47,6 @@ namespace Zenova {
 		static uintptr_t GetModuleBaseAddress(const std::wstring& modName);
 		static u32 GetModuleSize(const char*);
 		static void* LoadModule(const std::string& module);
-		static void* LoadModModuleAndResolveImports(const ModInfo& modInfo, const std::string& module);
-		static void ResolveModModuleImports(const ModInfo& modInfo, void* hModule, const std::string& moduleName);
 		static bool CloseModule(void*);
 		static void* GetModuleFunction(void* module, const std::string& function);
 

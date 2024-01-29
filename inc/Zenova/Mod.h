@@ -1,20 +1,14 @@
 #pragma once
 
 #include <string>
-#include <vector>
 
 #include "Common.h"
-#include "Zenova/Profile/ModInfo.h"
 
 #define MOD_FUNCTION extern "C" __declspec(dllexport)
 
 struct EXPORT ModContext {
 	std::string folder;
 };
-
-namespace Zenova {
-	EXPORT std::vector<Zenova::ModInfo>& GetMods();
-}
 
 // Define any/all of these functions
 
