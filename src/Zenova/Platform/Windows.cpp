@@ -18,6 +18,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
+#include <map>
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
@@ -25,12 +26,6 @@
 #include "Zenova/Utils/Memory.h"
 
 #include "MinHook.h"
-
-#if 0
-#define ZenovaDLog(severity, format, ...) logger.write(severity, format, __VA_ARGS__)
-#else
-#define ZenovaDLog(severity, format, ...)
-#endif
 
 namespace Zenova::PlatformImpl {
 	inline void* CleanupVariables = nullptr;
@@ -215,62 +210,84 @@ namespace Zenova {
 	typedef BOOL(APIENTRY* DllMainFunction)(HMODULE, DWORD, LPVOID);
 	void Platform::ResolveModModuleImports(const ModInfo& modInfo, void* hModule, const std::string& moduleName)
 	{
-		IMAGE_DOS_HEADER* pDOSHeader = (IMAGE_DOS_HEADER*)hModule;
-		IMAGE_NT_HEADERS* pNTHeaders = (IMAGE_NT_HEADERS*)((BYTE*)pDOSHeader + pDOSHeader->e_lfanew);
-		IMAGE_DATA_DIRECTORY importDir = pNTHeaders->OptionalHeader.DataDirectory[1];
-		IMAGE_IMPORT_DESCRIPTOR* imports = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>((uintptr_t)hModule + importDir.VirtualAddress);
+		if (!hModule) {
+			throw std::invalid_argument(fmt::format("[{}] Could not resolve the imports for the module because it was nullptr.", __FUNCTION__));
+			Platform::DebugPause();
+			return;
+		}
 
+		uintptr_t hModuleAddress = reinterpret_cast<uintptr_t>(hModule);
+		PIMAGE_DOS_HEADER dosHeader = reinterpret_cast<PIMAGE_DOS_HEADER>(hModuleAddress);
+		PIMAGE_NT_HEADERS ntHeader = reinterpret_cast<PIMAGE_NT_HEADERS>(hModuleAddress + dosHeader->e_lfanew);
+
+		IMAGE_DATA_DIRECTORY importDir = ntHeader->OptionalHeader.DataDirectory[1];
+		PIMAGE_IMPORT_DESCRIPTOR imports = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(hModuleAddress + importDir.VirtualAddress);
+		if (!imports) {
+			throw std::exception(fmt::format("[{}] Could not resolve the imports for the module because the imports data directory could not be found in the PE.", __FUNCTION__).c_str());
+			Platform::DebugPause();
+			return;
+		}
+
+		std::map<std::pair<uintptr_t, std::string>, ULONGLONG*> symbolTableAddresses;
 		while (imports->Characteristics != 0) {
-			PIMAGE_THUNK_DATA thunkILT = (PIMAGE_THUNK_DATA)((uintptr_t)hModule + imports->OriginalFirstThunk);
-			PIMAGE_THUNK_DATA thunkIAT = (PIMAGE_THUNK_DATA)((uintptr_t)hModule + imports->FirstThunk);
-			LPCSTR moduleName = reinterpret_cast<LPCSTR>((uintptr_t)hModule + imports->Name);
-			std::string importModNameId(moduleName);
-			{
-				size_t dot = importModNameId.find_last_of('.');
-				if (dot != std::string::npos) {
-					importModNameId = importModNameId.substr(0, dot);
-				}
-			}
-			
-			std::unordered_map<std::string, ULONGLONG*> iatAddresses{};
-			while (thunkILT->u1.AddressOfData != 0) {
-				if (!(thunkILT->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
-					PIMAGE_IMPORT_BY_NAME nameData =
-						reinterpret_cast<PIMAGE_IMPORT_BY_NAME>((uintptr_t)hModule + thunkILT->u1.AddressOfData);
+			PIMAGE_THUNK_DATA importLookupTable = reinterpret_cast<PIMAGE_THUNK_DATA>(hModuleAddress + imports->OriginalFirstThunk);
+			PIMAGE_THUNK_DATA importAddressTable = reinterpret_cast<PIMAGE_THUNK_DATA>(hModuleAddress + imports->FirstThunk);
 
-					iatAddresses.insert({ nameData->Name, &thunkIAT->u1.Function });
-				}
-				thunkILT++;
-				thunkIAT++;
-			}
-
-			uintptr_t moduleBase = Platform::GetModuleBaseAddress(moduleName);
-			if (!moduleBase) {
-				moduleBase = (uintptr_t)manager.loadMod(importModNameId);
-				if (moduleBase)
-					ZenovaDLog(Log::Severity::Info, "Loaded {} earlier because {} depends on it.", importModNameId, modInfo.mNameId);
-				else
-					moduleBase = (uintptr_t)LoadLibraryA(moduleName);
-			}
-
-			if (moduleBase != 0) {
-				for (auto& [name, address] : iatAddresses) {
-					FARPROC proc = (FARPROC)Platform::GetModuleFunction((void*)moduleBase, name.c_str());
-					if (proc) {
-						Memory::WriteOnProtectedAddress(address, &proc, sizeof(ULONGLONG));
+			if (imports->OriginalFirstThunk && imports->FirstThunk) {
+				LPCSTR moduleName = reinterpret_cast<LPCSTR>(hModuleAddress + imports->Name);
+				std::string importModNameId(moduleName);
+				{
+					size_t dot = importModNameId.find_last_of('.');
+					if (dot != std::string::npos) {
+						importModNameId = importModNameId.substr(0, dot);
 					}
 				}
-			}
-			else {
-				ZenovaDLog(Log::Severity::Error, "Could not load the IAT {}::{} because the dependency or module {} doesn't exist.", modInfo.mNameId, importModNameId, importModNameId);
+
+				uintptr_t moduleBase = Platform::GetModuleBaseAddress(moduleName);
+				if (!moduleBase) {
+					moduleBase = (uintptr_t)manager.loadMod(importModNameId);
+					if (!moduleBase)
+						moduleBase = (uintptr_t)LoadLibraryA(moduleName);
+				}
+
+				while (importLookupTable->u1.AddressOfData != 0) {
+					if (!(importLookupTable->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
+						PIMAGE_IMPORT_BY_NAME nameData =
+							reinterpret_cast<PIMAGE_IMPORT_BY_NAME>(hModuleAddress + importLookupTable->u1.AddressOfData);
+
+						symbolTableAddresses.insert({ { moduleBase, nameData->Name }, &(importAddressTable->u1.Function) });
+					}
+					importLookupTable++;
+					importAddressTable++;
+				}
 			}
 			
 			imports++;
 		}
+
+		for (auto& [infos, function] : symbolTableAddresses) {
+			auto& [moduleBase, entrySymbol] = infos;
+			if (moduleBase) {
+				ULONGLONG procAddress = reinterpret_cast<ULONGLONG>(
+					Platform::GetModuleFunction(reinterpret_cast<void*>(moduleBase), entrySymbol.c_str()));
+
+				if (procAddress && function) {
+					Memory::WriteOnProtectedAddress(function, &procAddress, sizeof(ULONGLONG));
+				}
+			}
+			else {
+				throw std::exception(fmt::format("[{}] Could not resolve the address for '{}' because the module could not be loaded.", __FUNCTION__, entrySymbol).c_str());
+				Platform::DebugPause();
+				return;
+			}
+		}
 		
-		DllMainFunction dllMain = reinterpret_cast<DllMainFunction>((uintptr_t)hModule + pNTHeaders->OptionalHeader.AddressOfEntryPoint);
-		if (dllMain) {
-			dllMain((HMODULE)hModule, DLL_PROCESS_ATTACH, nullptr);
+		if (ntHeader->OptionalHeader.AddressOfEntryPoint) {
+			reinterpret_cast<DllMainFunction>(hModuleAddress + ntHeader->OptionalHeader.AddressOfEntryPoint)(
+				reinterpret_cast<HMODULE>(hModule),
+				DLL_PROCESS_ATTACH,
+				nullptr
+			);
 		}
 	}
 
