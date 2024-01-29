@@ -92,7 +92,7 @@ namespace Zenova {
 
 	static void (*__handleDuplicates)(ControlsSettingsScreenController*, RemappingLayout&);
 	void _handleDuplicates(ControlsSettingsScreenController* self, RemappingLayout& a2) {}
-
+	
 	inline void createInputHooks() {
 		Zenova_Hook(MinecraftInputHandler::_registerInputHandlers, &_registerInputHandlers, &__registerInputHandlers);
 
@@ -102,7 +102,7 @@ namespace Zenova {
 		Zenova_Hook(VanillaClientInputMappingFactory::_populateGamepadDefaults, &_populateGamepadDefaults, &__populateGamepadDefaults);
 		Zenova_Hook(VanillaClientInputMappingFactory::_addFullKeyboardGamePlayControls, &_addFullKeyboardGamePlayControls, &__addFullKeyboardGamePlayControls);
 		Zenova_Hook(VanillaClientInputMappingFactory::_addInvariantGamePlayGameControllerControls, &_addInvariantGamePlayGameControllerControls, &__addInvariantGamePlayGameControllerControls);
-
 		Zenova_Hook(ControlsSettingsScreenController::_handleDuplicates, &_handleDuplicates, &__handleDuplicates);
+		
 	}
 }

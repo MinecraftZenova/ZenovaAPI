@@ -22,8 +22,15 @@
 #include "Zenova.h"
 #include "Zenova/Globals.h"
 #include "Zenova/Utils/Utils.h"
+#include "Zenova/Utils/Memory.h"
 
 #include "MinHook.h"
+
+#if 0
+#define ZenovaDLog(severity, format, ...) logger.write(severity, format, __VA_ARGS__)
+#else
+#define ZenovaDLog(severity, format, ...)
+#endif
 
 namespace Zenova::PlatformImpl {
 	inline void* CleanupVariables = nullptr;
@@ -194,6 +201,77 @@ namespace Zenova {
 
 	void* Platform::LoadModule(const std::string& module) {
 		return LoadLibraryA((module + ".dll").c_str());
+	}
+
+
+
+	void* Platform::LoadModModuleAndResolveImports(const ModInfo& modInfo, const std::string& module)
+	{
+		void* hModule = LoadLibraryExA((module + ".dll").c_str(), NULL, DONT_RESOLVE_DLL_REFERENCES);
+		ResolveModModuleImports(modInfo, hModule, module);
+		return hModule;
+	}
+
+	typedef BOOL(APIENTRY* DllMainFunction)(HMODULE, DWORD, LPVOID);
+	void Platform::ResolveModModuleImports(const ModInfo& modInfo, void* hModule, const std::string& moduleName)
+	{
+		IMAGE_DOS_HEADER* pDOSHeader = (IMAGE_DOS_HEADER*)hModule;
+		IMAGE_NT_HEADERS* pNTHeaders = (IMAGE_NT_HEADERS*)((BYTE*)pDOSHeader + pDOSHeader->e_lfanew);
+		IMAGE_DATA_DIRECTORY importDir = pNTHeaders->OptionalHeader.DataDirectory[1];
+		IMAGE_IMPORT_DESCRIPTOR* imports = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>((uintptr_t)hModule + importDir.VirtualAddress);
+
+		while (imports->Characteristics != 0) {
+			PIMAGE_THUNK_DATA thunkILT = (PIMAGE_THUNK_DATA)((uintptr_t)hModule + imports->OriginalFirstThunk);
+			PIMAGE_THUNK_DATA thunkIAT = (PIMAGE_THUNK_DATA)((uintptr_t)hModule + imports->FirstThunk);
+			LPCSTR moduleName = reinterpret_cast<LPCSTR>((uintptr_t)hModule + imports->Name);
+			std::string importModNameId(moduleName);
+			{
+				size_t dot = importModNameId.find_last_of('.');
+				if (dot != std::string::npos) {
+					importModNameId = importModNameId.substr(0, dot);
+				}
+			}
+			
+			std::unordered_map<std::string, ULONGLONG*> iatAddresses{};
+			while (thunkILT->u1.AddressOfData != 0) {
+				if (!(thunkILT->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
+					PIMAGE_IMPORT_BY_NAME nameData =
+						reinterpret_cast<PIMAGE_IMPORT_BY_NAME>((uintptr_t)hModule + thunkILT->u1.AddressOfData);
+
+					iatAddresses.insert({ nameData->Name, &thunkIAT->u1.Function });
+				}
+				thunkILT++;
+				thunkIAT++;
+			}
+
+			uintptr_t moduleBase = Platform::GetModuleBaseAddress(moduleName);
+			if (!moduleBase) {
+				moduleBase = (uintptr_t)manager.loadMod(importModNameId);
+				if (moduleBase)
+					ZenovaDLog(Log::Severity::Info, "Loaded {} earlier because {} depends on it.", importModNameId, modInfo.mNameId);
+				else
+					moduleBase = (uintptr_t)LoadLibraryA(moduleName);
+			}
+
+			if (moduleBase != 0) {
+				for (auto& [name, address] : iatAddresses) {
+					FARPROC proc = (FARPROC)Platform::GetModuleFunction((void*)moduleBase, name.c_str());
+					if (proc) {
+						Memory::WriteOnProtectedAddress(address, &proc, sizeof(ULONGLONG));
+					}
+				}
+			}
+			else {
+				ZenovaDLog(Log::Severity::Error, "Could not load the IAT {}::{} because the dependency or module {} doesn't exist.", modInfo.mNameId, importModNameId, importModNameId);
+			}
+			
+			imports++;
+		}
+		
+		DllMainFunction dllMain = reinterpret_cast<DllMainFunction>((uintptr_t)hModule + pNTHeaders->OptionalHeader.AddressOfEntryPoint);
+		if (dllMain) {
+			dllMain((HMODULE)hModule, DLL_PROCESS_ATTACH, nullptr);
+		}
 	}
 
 	bool Platform::CloseModule(void* module) {

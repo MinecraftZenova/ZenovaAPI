@@ -1,4 +1,4 @@
-#include "ModInfo.h"
+#include "Zenova/Profile/ModInfo.h"
 
 #include <fstream>
 #include <utility>
@@ -17,14 +17,6 @@ namespace Zenova {
             mName = JsonHelper::FindString(modDocument, "name");
             mDescription = JsonHelper::FindString(modDocument, "description");
             mVersion = JsonHelper::FindString(modDocument, "version");
-            auto& dependenciesObject = JsonHelper::FindMember(modDocument, "dependencies", false);
-            if (!dependenciesObject.IsNull() && dependenciesObject.IsArray())
-            {
-                for (auto& object : dependenciesObject.GetArray())
-                {
-                    mDependencies.push_back(object.GetString());
-                }
-            }
         }
     }
 
@@ -34,8 +26,7 @@ namespace Zenova {
         mNameId(std::move(mod.mNameId)),
         mName(std::move(mod.mName)),
         mDescription(std::move(mod.mDescription)),
-        mVersion(std::move(mod.mVersion)),
-        mDependencies(std::move(mod.mDependencies))
+        mVersion(std::move(mod.mVersion))
     {}
 
     ModInfo::~ModInfo() {
@@ -44,16 +35,7 @@ namespace Zenova {
 
     void* ModInfo::loadModule()
     {
-        loadDependencies();
-        mHandle = Platform::LoadModule(mModFolder + mNameId);
+        mHandle = Platform::LoadModModuleAndResolveImports(*this, mModFolder + mNameId);
         return mHandle;
-    }
-
-    void ModInfo::loadDependencies() const
-    {
-        for (auto& dependencyName : mDependencies)
-        {
-            manager.loadMod(dependencyName);
-        }
     }
 }

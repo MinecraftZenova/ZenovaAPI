@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "ProfileInfo.h"
-#include "ModInfo.h"
+#include "Zenova/Profile/ModInfo.h"
 
 namespace Zenova {
     class Manager {
@@ -28,7 +28,8 @@ namespace Zenova {
         void update();
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
-        void loadMod(const std::string& modName);
+        void* loadMod(const std::string& modName);
+        std::vector<ModInfo>& getMods();
         std::string getVersion();
         size_t getModCount();
 

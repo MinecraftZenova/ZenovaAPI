@@ -16,13 +16,12 @@ namespace Zenova {
     	std::string mName = "";
     	std::string mDescription = "";
 		std::string mVersion = "";
-    	std::vector<std::string> mDependencies = {};
-
+#ifdef ZENOVA_API
 		ModInfo(const std::string& modFolder);
 		ModInfo(ModInfo&&) noexcept;
 		~ModInfo();
 
     	void* loadModule();
-    	void loadDependencies() const;
+#endif
 	};
 }
