@@ -22,8 +22,6 @@ namespace Zenova {
 		Execute = 8
 	};
 
-	struct ModInfo;
-
 	inline ProtectionFlags operator|(ProtectionFlags a, ProtectionFlags b) {
 		return static_cast<ProtectionFlags>(enum_cast(a) | enum_cast(b));
 	}

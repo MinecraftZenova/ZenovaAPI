@@ -134,11 +134,6 @@ namespace Zenova {
         }
     }
 
-    std::vector<ModInfo>& Manager::getMods()
-    {
-        return mods;
-    }
-
     std::string Manager::getVersion() {
         return launched.versionId;
     }

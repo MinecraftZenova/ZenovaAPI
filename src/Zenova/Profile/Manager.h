@@ -29,7 +29,6 @@ namespace Zenova {
         void load(const ProfileInfo& profile);
         void swap(const ProfileInfo& profile);
         void* loadMod(const std::string& modName);
-        std::vector<ModInfo>& getMods();
         std::string getVersion();
         size_t getModCount();
 

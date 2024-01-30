@@ -35,7 +35,7 @@ namespace Zenova {
 
     void* ModInfo::loadModule()
     {
-        mHandle = Zenova::PlatformImpl::LoadModModuleAndResolveImports(mModFolder + mNameId);
+        mHandle = PlatformImpl::LoadModModuleAndResolveImports(mModFolder + mNameId);
         return mHandle;
     }
 }

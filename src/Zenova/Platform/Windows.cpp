@@ -23,7 +23,6 @@
 #include "Zenova.h"
 #include "Zenova/Globals.h"
 #include "Zenova/Utils/Utils.h"
-#include "Zenova/Utils/Memory.h"
 
 #include "MinHook.h"
 
@@ -101,7 +100,7 @@ namespace Zenova::PlatformImpl {
 	void ResolveModModuleImports(void* hModule, const std::string& moduleName)
 	{
 		if (!hModule) {
-			throw std::invalid_argument(fmt::format("[{}] Could not resolve the imports for the module because it was nullptr.", __FUNCTION__));
+			Zenova_Log(Warning, "[{}] Could not resolve the imports for the module because it was nullptr.", __FUNCTION__);
 			Platform::DebugPause();
 			return;
 		}
@@ -113,7 +112,7 @@ namespace Zenova::PlatformImpl {
 		IMAGE_DATA_DIRECTORY importDir = ntHeader->OptionalHeader.DataDirectory[1];
 		PIMAGE_IMPORT_DESCRIPTOR imports = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(hModuleAddress + importDir.VirtualAddress);
 		if (!imports) {
-			throw std::exception(fmt::format("[{}] Could not resolve the imports for the module because the imports data directory could not be found in the PE.", __FUNCTION__).c_str());
+			Zenova_Log(Warning, "[{}] Could not resolve the imports for the module because the imports data directory could not be found in the PE.", __FUNCTION__);
 			Platform::DebugPause();
 			return;
 		}
@@ -162,12 +161,13 @@ namespace Zenova::PlatformImpl {
 					Platform::GetModuleFunction(reinterpret_cast<void*>(moduleBase), entrySymbol.c_str()));
 
 				if (procAddress && function) {
-					Memory::WriteOnProtectedAddress(function, &procAddress, sizeof(ULONGLONG));
+					u32 oldPageProtection = Platform::SetPageProtect(function, sizeof(ULONGLONG), ProtectionFlags::Execute | ProtectionFlags::Read | ProtectionFlags::Write);
+					(*function) = procAddress;
+					Platform::SetPageProtect(function, sizeof(ULONGLONG), oldPageProtection);
 				}
 			}
 			else {
-				throw std::exception(fmt::format("[{}] Could not resolve the address for '{}' because the module could not be loaded.", __FUNCTION__, entrySymbol).c_str());
-				Platform::DebugPause();
+				Zenova_Log(Warning, "[{}] Could not resolve the address for '{}' because the module could not be loaded.", __FUNCTION__, entrySymbol);
 				return;
 			}
 		}
