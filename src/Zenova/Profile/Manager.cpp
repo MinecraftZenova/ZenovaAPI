@@ -1,5 +1,5 @@
 #include "Manager.h"
-
+#include <filesystem>
 #include "Zenova/Log.h"
 #include "Zenova/Mod.h"
 #include "Zenova/Globals.h"
@@ -102,29 +102,35 @@ namespace Zenova {
         load(profile);
     }
 
-    void Manager::loadMod(const std::string& modName)
+    void* Manager::loadMod(const std::string& modName)
     {
         if (std::find_if(mods.begin(), mods.end(),
         [&modName](const ModInfo& mod) { return mod.mNameId == modName; }) != mods.end())
-            return;
+            return nullptr;
             
+        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
+        if (!std::filesystem::exists(folder))
+            return nullptr;
+
         logger.info("Loading {}", modName);
 
         // todo: verify path
-        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
         ModInfo mod(folder);
+        void* modHandle = mod.loadModule();
 
-        if (mod.loadModule()) {
+        if (modHandle) {
             ModContext ctx = { folder };
             CALL_MOD_FUNC(mod, ModLoad, ctx)
 
             PackManager::addMod(folder);
 
             mods.push_back(std::move(mod));
+            return modHandle;
         }
         else {
             logger.warn("Failed to load {}", mod.mName);
             Platform::ErrorPrinter();
+            return nullptr;
         }
     }
 

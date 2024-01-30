@@ -18,6 +18,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <tuple>
+#include <map>
 
 #include "Zenova.h"
 #include "Zenova/Globals.h"
@@ -85,6 +86,98 @@ namespace Zenova::PlatformImpl {
 
 		if (CleanupVariables) {
 			FreeLibraryAndExitThread(reinterpret_cast<HMODULE>(CleanupVariables), 0);
+		}
+	}
+
+	void* LoadModModuleAndResolveImports(const std::string& module)
+	{
+		void* hModule = LoadLibraryExA(module.c_str(), NULL, DONT_RESOLVE_DLL_REFERENCES);
+		ResolveModModuleImports(hModule, module);
+		return hModule;
+	}
+
+	typedef BOOL(APIENTRY* DllMainFunction)(HMODULE, DWORD, LPVOID);
+	void ResolveModModuleImports(void* hModule, const std::string& moduleName)
+	{
+		if (!hModule) {
+			Zenova_Log(Warning, "[{}] Could not resolve the imports for the module because it was nullptr.", __FUNCTION__);
+			Platform::DebugPause();
+			return;
+		}
+
+		uintptr_t hModuleAddress = reinterpret_cast<uintptr_t>(hModule);
+		PIMAGE_DOS_HEADER dosHeader = reinterpret_cast<PIMAGE_DOS_HEADER>(hModuleAddress);
+		PIMAGE_NT_HEADERS ntHeader = reinterpret_cast<PIMAGE_NT_HEADERS>(hModuleAddress + dosHeader->e_lfanew);
+
+		IMAGE_DATA_DIRECTORY importDir = ntHeader->OptionalHeader.DataDirectory[1];
+		PIMAGE_IMPORT_DESCRIPTOR imports = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(hModuleAddress + importDir.VirtualAddress);
+		if (!imports) {
+			Zenova_Log(Warning, "[{}] Could not resolve the imports for the module because the imports data directory could not be found in the PE.", __FUNCTION__);
+			Platform::DebugPause();
+			return;
+		}
+
+		std::map<std::pair<uintptr_t, std::string>, ULONGLONG*> symbolTableAddresses;
+		while (imports->Characteristics != 0) {
+			PIMAGE_THUNK_DATA importLookupTable = reinterpret_cast<PIMAGE_THUNK_DATA>(hModuleAddress + imports->OriginalFirstThunk);
+			PIMAGE_THUNK_DATA importAddressTable = reinterpret_cast<PIMAGE_THUNK_DATA>(hModuleAddress + imports->FirstThunk);
+
+			if (imports->OriginalFirstThunk && imports->FirstThunk) {
+				LPCSTR moduleName = reinterpret_cast<LPCSTR>(hModuleAddress + imports->Name);
+				std::string importModNameId(moduleName);
+				{
+					size_t dot = importModNameId.find_last_of('.');
+					if (dot != std::string::npos) {
+						importModNameId = importModNameId.substr(0, dot);
+					}
+				}
+
+				uintptr_t moduleBase = Platform::GetModuleBaseAddress(moduleName);
+				if (!moduleBase) {
+					moduleBase = (uintptr_t)manager.loadMod(importModNameId);
+					if (!moduleBase)
+						moduleBase = (uintptr_t)LoadLibraryA(moduleName);
+				}
+
+				while (importLookupTable->u1.AddressOfData != 0) {
+					if (!(importLookupTable->u1.Ordinal & IMAGE_ORDINAL_FLAG)) {
+						PIMAGE_IMPORT_BY_NAME nameData =
+							reinterpret_cast<PIMAGE_IMPORT_BY_NAME>(hModuleAddress + importLookupTable->u1.AddressOfData);
+
+						symbolTableAddresses.insert({ { moduleBase, nameData->Name }, &(importAddressTable->u1.Function) });
+					}
+					importLookupTable++;
+					importAddressTable++;
+				}
+			}
+
+			imports++;
+		}
+
+		for (auto& [infos, function] : symbolTableAddresses) {
+			auto& [moduleBase, entrySymbol] = infos;
+			if (moduleBase) {
+				ULONGLONG procAddress = reinterpret_cast<ULONGLONG>(
+					Platform::GetModuleFunction(reinterpret_cast<void*>(moduleBase), entrySymbol.c_str()));
+
+				if (procAddress && function) {
+					u32 oldPageProtection = Platform::SetPageProtect(function, sizeof(ULONGLONG), ProtectionFlags::Execute | ProtectionFlags::Read | ProtectionFlags::Write);
+					(*function) = procAddress;
+					Platform::SetPageProtect(function, sizeof(ULONGLONG), oldPageProtection);
+				}
+			}
+			else {
+				Zenova_Log(Warning, "[{}] Could not resolve the address for '{}' because the module could not be loaded.", __FUNCTION__, entrySymbol);
+				return;
+			}
+		}
+
+		if (ntHeader->OptionalHeader.AddressOfEntryPoint) {
+			reinterpret_cast<DllMainFunction>(hModuleAddress + ntHeader->OptionalHeader.AddressOfEntryPoint)(
+				reinterpret_cast<HMODULE>(hModule),
+				DLL_PROCESS_ATTACH,
+				nullptr
+			);
 		}
 	}
 }
