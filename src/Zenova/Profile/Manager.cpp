@@ -1,5 +1,5 @@
 #include "Manager.h"
-
+#include <filesystem>
 #include "Zenova/Log.h"
 #include "Zenova/Mod.h"
 #include "Zenova/Globals.h"
@@ -108,10 +108,13 @@ namespace Zenova {
         [&modName](const ModInfo& mod) { return mod.mNameId == modName; }) != mods.end())
             return nullptr;
             
+        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
+        if (!std::filesystem::exists(folder))
+            return nullptr;
+
         logger.info("Loading {}", modName);
 
         // todo: verify path
-        std::string folder = manager.dataFolder + "\\mods\\" + modName + "\\";
         ModInfo mod(folder);
         void* modHandle = mod.loadModule();
 
